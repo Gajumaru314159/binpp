@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -12,8 +14,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 		const document = editor.document;
 
-		const path = require('path');
-		const fileName = path.basename(document.fileName);
+               const fileName = path.basename(document.fileName);
 		const panel = vscode.window.createWebviewPanel(
 			'hexView',
 			`Preview ${fileName}`,
@@ -22,41 +23,11 @@ export function activate(context: vscode.ExtensionContext) {
 		);
 
 
-		// バイナリデータを16進数とASCIIに変換する関数
-		function toHexAsciiView(text: string, bytesPerLine: number): {address: string, hex: string, ascii: string} {
-			const bytes = Buffer.from(text, 'utf8');
-			const addressLines: string[] = [];
-			const hexLines: string[] = [];
-			const asciiLines: string[] = [];
-			for (let i = 0; i < bytes.length; i += bytesPerLine) {
-				const slice = bytes.slice(i, i + bytesPerLine);
-				const address = i.toString(16).padStart(8, '0');
-				const hexBytes = Array.from(slice).map(b => b.toString(16).padStart(2, '0')).join(' ');
-				const ascii = Array.from(slice).map(b => (b >= 32 && b <= 126) ? String.fromCharCode(b) : '.').join('');
-				addressLines.push(`<tr><td>${address}</td></tr>`);
-				hexLines.push(`<tr><td>${hexBytes.padEnd(bytesPerLine * 3 - 1, ' ')}</td></tr>`);
-				asciiLines.push(`<tr><td>${ascii}</td></tr>`);
-			}
-			return {address: addressLines.join('\n'), hex: hexLines.join('\n'), ascii: asciiLines.join('\n')};
-		}
+               const initialBytesPerLine = 16;
+               const initialOffset = 0;
 
-		const initialBytesPerLine = 16;
-		let currentBytesPerLine = initialBytesPerLine;
-
-		function renderView(bytesPerLine: number) {
-			const hexAscii = toHexAsciiView(document.getText(), bytesPerLine);
-			return `
-			<table class="address">
-				${hexAscii.address}
-			</table>
-			<table class="hex">
-				${hexAscii.hex}
-			</table>
-			<table class="ascii">
-				${hexAscii.ascii}
-			</table>
-			`;
-		}
+               const fileBytes = fs.readFileSync(document.uri.fsPath);
+               const base64Data = fileBytes.toString('base64');
 
 		const hexViewHtml = `
 			<html>
@@ -74,9 +45,11 @@ export function activate(context: vscode.ExtensionContext) {
 				</style>
 			</head>
 			<body>
-				<div class="toolbar">
-					<label for="bytesPerLine">Bytes per line: </label>
-					<select id="bytesPerLine">
+                        <div class="toolbar">
+                                        <label for="offset">Offset: </label>
+                                        <input id="offset" type="number" value="0" style="width:100px;" />
+                                        <label for="bytesPerLine">Bytes per line: </label>
+                                        <select id="bytesPerLine">
 						<option value="1">1</option>
 						<option value="2">2</option>
 						<option value="4">4</option>
@@ -87,18 +60,48 @@ export function activate(context: vscode.ExtensionContext) {
 						<option value="128">128</option>
 					</select>
 				</div>
-				<div class="view-container" id="viewContainer">
-					${renderView(initialBytesPerLine)}
-				</div>
-				<script>
-					const vscode = acquireVsCodeApi();
-					const select = document.getElementById('bytesPerLine');
-					const viewContainer = document.getElementById('viewContainer');
-					select.addEventListener('change', () => {
-						const val = parseInt(select.value, 10);
-						viewContainer.innerHTML = renderView(val)};
-					});
-				</script>
+                                <div class="view-container" id="viewContainer"></div>
+                                <script>
+                                        const vscode = acquireVsCodeApi();
+                                        const rawData = '${base64Data}';
+                                        const bytes = Uint8Array.from(atob(rawData), c => c.charCodeAt(0));
+                                        const select = document.getElementById('bytesPerLine');
+                                        const offsetInput = document.getElementById('offset');
+                                        const viewContainer = document.getElementById('viewContainer');
+
+                                        function renderView(bytesPerLine, offset) {
+                                                const slice = bytes.slice(offset);
+                                                let addr = '';
+                                                let hex = '';
+                                                let ascii = '';
+                                                for (let i = 0; i < slice.length; i += bytesPerLine) {
+                                                        const row = slice.slice(i, i + bytesPerLine);
+                                                        const address = i.toString(16).padStart(8, '0');
+                                                        const hexBytes = Array.from(row).map(b => b.toString(16).padStart(2, '0')).join(' ');
+                                                        const asciiStr = Array.from(row).map(b => (b >= 32 && b <= 126) ? String.fromCharCode(b) : '.').join('');
+                                                        addr += '<tr><td>' + address + '</td></tr>';
+                                                        hex += '<tr><td>' + hexBytes.padEnd(bytesPerLine * 3 - 1, ' ') + '</td></tr>';
+                                                        ascii += '<tr><td>' + asciiStr + '</td></tr>';
+                                                }
+                                                return '<table class="address">' + addr + '</table>' +
+                                                       '<table class="hex">' + hex + '</table>' +
+                                                       '<table class="ascii">' + ascii + '</table>';
+                                        }
+
+                                        let currentBytesPerLine = ${initialBytesPerLine};
+                                        let currentOffset = ${initialOffset};
+
+                                        function updateView() {
+                                                currentBytesPerLine = parseInt(select.value, 10);
+                                                currentOffset = parseInt(offsetInput.value, 10) || 0;
+                                                console.log('updateView', currentBytesPerLine, currentOffset);
+                                                viewContainer.innerHTML = renderView(currentBytesPerLine, currentOffset);
+                                        }
+
+                                        select.addEventListener('change', updateView);
+                                        offsetInput.addEventListener('change', updateView);
+                                        updateView();
+                                </script>
 			</body>
 			</html>
 		`;
