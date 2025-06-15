@@ -74,6 +74,10 @@ export function parseBinary(bytes: Uint8Array, format: FormatDef, rootName = 'Ro
     let offset = 0;
     const scopeStack: Record<string, any>[] = [];
 
+    if (!format.structs[rootName]) {
+        throw new Error(`Root struct '${rootName}' not found`);
+    }
+
     function evaluate(expr: string, local: Record<string, any>): number {
         const scope = Object.assign({}, ...scopeStack, local);
         try {
@@ -86,6 +90,9 @@ export function parseBinary(bytes: Uint8Array, format: FormatDef, rootName = 'Ro
 
     function parseStruct(name: string, ctx: Record<string, any>): TreeNode {
         const def = format.structs[name];
+        if (!def) {
+            throw new Error(`Unknown struct: ${name}`);
+        }
         const start = offset;
         const node: TreeNode = { name, type: 'struct', offset: start, size: 0, children: [] };
         scopeStack.push(ctx);

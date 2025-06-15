@@ -231,11 +231,15 @@ export function activate(context: vscode.ExtensionContext) {
                                        try {
                                                const content = fs.readFileSync(formatPaths[selected], 'utf8');
                                                currentFormat = parseFormatFile(content);
+                                               if (!currentFormat.structs['Root']) {
+                                                       throw new Error('Format file lacks Root struct');
+                                               }
                                                const tree = parseBinary(fileBytes, currentFormat);
                                                const html = '<ul>' + treeToHtml(tree) + '</ul>';
                                                panel.webview.postMessage({ type: 'treeData', html });
-                                       } catch (err) {
+                                       } catch (err: any) {
                                                console.error('Parse failed', err);
+                                               vscode.window.showErrorMessage('Parse failed: ' + err.message);
                                        }
                                } else {
                                        panel.webview.postMessage({ type: 'treeData', html: '' });
