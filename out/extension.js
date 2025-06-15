@@ -100,8 +100,8 @@ function activate(context) {
                                                 viewContainer.innerHTML = renderView(currentBytesPerLine, currentOffset);
                                                 if (focusIndex >= 0) {
                                                         const el = viewContainer.querySelector(\`td.byte[data-index="\${focusIndex}"]\`);
-                                                        if (el) {
-                                                                (el as HTMLElement).focus();
+                                                        if (el instanceof HTMLElement) {
+                                                                el.focus();
                                                         }
                                                 }
                                         }
@@ -110,16 +110,16 @@ function activate(context) {
                                         offsetInput.addEventListener('change', updateView);
 
                                         viewContainer.addEventListener('focusin', e => {
-                                                const target = e.target as HTMLElement;
-                                                if (target.classList.contains('byte')) {
+                                                const target = e.target;
+                                                if (target instanceof HTMLElement && target.classList.contains('byte')) {
                                                         currentFocusIndex = parseInt(target.getAttribute('data-index') || '0', 10);
                                                         vscode.postMessage({ type: 'cursorMove', index: currentFocusIndex });
                                                 }
                                         });
 
                                         viewContainer.addEventListener('input', e => {
-                                                const target = e.target as HTMLElement;
-                                                if (target.classList.contains('byte')) {
+                                                const target = e.target;
+                                                if (target instanceof HTMLElement && target.classList.contains('byte')) {
                                                         const idx = parseInt(target.getAttribute('data-index') || '0', 10);
                                                         let text = (target.textContent || '').trim();
                                                         if (/^[0-9a-fA-F]{1,2}$/.test(text)) {
