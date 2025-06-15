@@ -5,7 +5,12 @@ import { parseFormatFile, parseBinary, treeToHtml, FormatDef } from './parser';
 
 export function activate(context: vscode.ExtensionContext) {
 
-		const editor = vscode.window.activeTextEditor;
+        const output = vscode.window.createOutputChannel('binpp');
+        output.appendLine('binpp extension activated');
+
+        const disposable = vscode.commands.registerCommand('binpp.open', () => {
+
+                const editor = vscode.window.activeTextEditor;
 		if (!editor) {
 			vscode.window.showInformationMessage('No active editor found.');
 			return;
@@ -18,14 +23,13 @@ export function activate(context: vscode.ExtensionContext) {
                const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
                let formatOptionsHtml = '';
                const formatPaths: Record<string, string> = {};
+               let currentFormat: FormatDef | undefined;
                if (workspaceFolder) {
                        const configPath = path.join(workspaceFolder, 'binpp.json');
                        if (fs.existsSync(configPath)) {
                                try {
                                        const configRaw = fs.readFileSync(configPath, 'utf8');
-                                                                       formatPaths[f] = path.join(absDir, f);
-               let currentFormat: FormatDef | undefined;
-                                       const config = JSON.parse(configRaw) as { formats?: string[]; };
+                                       const config = JSON.parse(configRaw) as { formats?: string[] };
                                        const dirs = config.formats ?? [];
                                        const formatFiles: string[] = ["(None)"];
                                        for (const d of dirs) {
@@ -34,13 +38,20 @@ export function activate(context: vscode.ExtensionContext) {
                                                        for (const f of fs.readdirSync(absDir)) {
                                                                if (f.endsWith('.h')) {
                                                                        formatFiles.push(f);
+                                                                       formatPaths[f] = path.join(absDir, f);
                                                                }
                                                        }
                                                }
                                        }
                                        formatOptionsHtml = formatFiles.map(f => `<option value="${f}">${f}</option>`).join('');
-                               } catch (err) {
+                               } catch (err: any) {
+                                       const msg = err?.message || String(err);
+                                       output.appendLine(`[config] ${msg}`);
+                                       if (err?.stack) {
+                                               output.appendLine(err.stack);
+                                       }
                                        console.error('Failed to read binpp.json', err);
+                                       vscode.window.showErrorMessage('Failed to read binpp.json: ' + msg + '. See "binpp" output for details.');
                                }
                        }
                }
@@ -98,7 +109,12 @@ export function activate(context: vscode.ExtensionContext) {
                                         .ascii td { padding-left: 10px; user-select: text; }
                                         .byte { outline: none; min-width: 20px; text-align: center; }
                                         .view-container { display: flex; }
-				</style>
+                                        .tree-table { border-collapse: collapse; width: 100%; }
+                                        .tree-table td, .tree-table th { border: 1px solid; padding: 2px 4px; }
+                                        .tree-table .name { white-space: pre; }
+                                        .tree-table .toggle { cursor: pointer; display: inline-block; width: 1em; }
+                                        .tree-table tr.hidden { display: none; }
+                               </style>
 			</head>
 			<body>
                         <div class="toolbar">
@@ -163,6 +179,7 @@ export function activate(context: vscode.ExtensionContext) {
                                         function updateView(focusIndex = -1) {
                                                 currentBytesPerLine = parseInt(select.value, 10);
                                                 currentOffset = parseInt(offsetInput.value, 10) || 0;
+                                                viewContainer.style.display = 'flex';
                                                 viewContainer.innerHTML = renderView(currentBytesPerLine, currentOffset);
                                                 if (focusIndex >= 0) {
                                                         const el = viewContainer.querySelector(\`td.byte[data-index="\${focusIndex}"]\`);
@@ -178,10 +195,12 @@ export function activate(context: vscode.ExtensionContext) {
                                                vscode.postMessage({ type: 'formatChange', value: formatSelect.value });
                                        });
 
+
                                         window.addEventListener('message', event => {
                                                 const msg = event.data;
                                                 if (msg.type === 'treeData') {
                                                         if (msg.html) {
+                                                                viewContainer.style.display = 'block';
                                                                 viewContainer.innerHTML = msg.html;
                                                         } else {
                                                                 updateView();
@@ -229,11 +248,21 @@ export function activate(context: vscode.ExtensionContext) {
                                        try {
                                                const content = fs.readFileSync(formatPaths[selected], 'utf8');
                                                currentFormat = parseFormatFile(content);
+                                               if (!currentFormat.structs['Root']) {
+                                                       throw new Error('Format file lacks Root struct');
+                                               }
                                                const tree = parseBinary(fileBytes, currentFormat);
-                                               const html = '<ul>' + treeToHtml(tree) + '</ul>';
+                                               const html = treeToHtml(tree);
                                                panel.webview.postMessage({ type: 'treeData', html });
-                                       } catch (err) {
+                                       } catch (err: any) {
+                                               const msg = err?.message || String(err);
+                                               output.appendLine(`[parse] ${msg}`);
+                                               if (err?.stack) {
+                                                       output.appendLine(err.stack);
+                                               }
                                                console.error('Parse failed', err);
+                                               vscode.window.showErrorMessage('Parse failed: ' + msg + '. See "binpp" output for details.');
+                                               panel.webview.postMessage({ type: 'treeData', html: '' });
                                        }
                                } else {
                                        panel.webview.postMessage({ type: 'treeData', html: '' });
@@ -246,5 +275,6 @@ export function activate(context: vscode.ExtensionContext) {
                });
         });
 
-	context.subscriptions.push(disposable);
+       context.subscriptions.push(disposable);
+       context.subscriptions.push(output);
 }

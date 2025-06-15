@@ -26,5 +26,9 @@ struct Header {
     uint8_t     bitsPerPixel;
     uint8_t     imageDescriptor;
     char        imageId[idLength];
-    Colormap    colormap;
+    Colormap    colormap[colormapType != 0];
+};
+
+struct Root {
+    Header header;
 };
