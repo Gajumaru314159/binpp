@@ -10,7 +10,12 @@ const builtinSizes: Record<string, number> = {
     uint32_t: 4,
 };
 
-export function parseBinary(bytes: Uint8Array, format: FormatDef, rootName = 'Root'): TreeNode {
+export function parseBinary(
+    bytes: Uint8Array,
+    format: FormatDef,
+    maxArrayLength = 10000,
+    rootName = 'Root'
+): TreeNode {
     const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     let offset = 0;
     const scopeStack: Record<string, any>[] = [];
@@ -48,6 +53,9 @@ export function parseBinary(bytes: Uint8Array, format: FormatDef, rootName = 'Ro
 
     function parseField(field: FieldDef, ctx: Record<string, any>): TreeNode {
         const count = field.lengthExpr ? Math.max(0, evaluate(field.lengthExpr, ctx)) : 1;
+        if (count > maxArrayLength) {
+            throw new Error(`Array '${field.name}' length ${count} exceeds limit ${maxArrayLength}`);
+        }
         const enumDef = format.enums[field.type];
         const baseType = enumDef?.underlying || field.type;
         if (format.structs[baseType]) {
