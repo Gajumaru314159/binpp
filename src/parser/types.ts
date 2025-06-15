@@ -2,6 +2,7 @@ export interface FieldDef {
     name: string;
     type: string;
     lengthExpr?: string;
+    conditionExpr?: string;
 }
 
 export interface StructDef {

@@ -142,6 +142,23 @@ struct Root {
 - メンバの読み取り順序により、`header` の `dataSize` を参照して `data` の長さを決定。
 - 暗黙的に、先に定義されたメンバの読み取り後にのみ依存関係が評価される。
 
+### 3.6 条件付きメンバ
+
+- メンバ宣言の末尾に `if 条件式` を記述すると、その条件が真のときのみ読み取られる
+
+```cpp
+struct Bitmap {
+  int bpp;
+  int width;
+  int height;
+  Gray colors[width * height]; // if bpp == 8
+  RGB  colors24[width * height]; // if bpp == 24
+  RGBA colors32[width * height]; // if bpp == 32
+};
+```
+
+条件式では既に読み取られたメンバの値を参照できる。
+
 ## 4. 構造体ファイルの管理
 
 - `settings.json` にて `.h` ファイルを格納したフォルダを複数登録可能

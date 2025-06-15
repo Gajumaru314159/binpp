@@ -47,6 +47,9 @@ export function parseBinary(bytes: Uint8Array, format: FormatDef, rootName = 'Ro
     }
 
     function parseField(field: FieldDef, ctx: Record<string, any>): TreeNode {
+        if (field.conditionExpr && !evaluate(field.conditionExpr, ctx)) {
+            return { name: field.name, type: field.type, offset, size: 0 };
+        }
         const count = field.lengthExpr ? Math.max(0, evaluate(field.lengthExpr, ctx)) : 1;
         const enumDef = format.enums[field.type];
         const baseType = enumDef?.underlying || field.type;
