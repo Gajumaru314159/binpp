@@ -5,7 +5,6 @@
 
 # Node modules (if applicable)
 node_modules/
-out/
 
 # Logs
 npm-debug.log*
