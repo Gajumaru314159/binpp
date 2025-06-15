@@ -15,7 +15,9 @@ struct RGB {
 };
 
 struct Colormap {
-    RGB colors[width*height];
+    uint8_t colors[width*height]; // if imageType == 1
+    RGB colors[width*height]; // if imageType == 2
+    uint8_t colors[width*height]; // if imageType == 3
 };
 
 struct Header {
