@@ -4,8 +4,6 @@ import * as fs from 'fs';
 
 export function activate(context: vscode.ExtensionContext) {
 
-	console.log('Congratulations, your extension "helloworld-sample" is now active!');
-
 	const disposable = vscode.commands.registerCommand('binpp.open', () => {
 		const editor = vscode.window.activeTextEditor;
 		if (!editor) {
@@ -24,9 +22,9 @@ export function activate(context: vscode.ExtensionContext) {
                        if (fs.existsSync(configPath)) {
                                try {
                                        const configRaw = fs.readFileSync(configPath, 'utf8');
-                                       const config = JSON.parse(configRaw) as { formats?: string[]; includePaths?: string[] };
-                                       const dirs = config.formats ?? config.includePaths ?? [];
-                                       const formatFiles: string[] = [];
+                                       const config = JSON.parse(configRaw) as { formats?: string[]; };
+                                       const dirs = config.formats ?? [];
+                                       const formatFiles: string[] = ["(None)"];
                                        for (const d of dirs) {
                                                const absDir = path.isAbsolute(d) ? d : path.join(workspaceFolder, d);
                                                if (fs.existsSync(absDir) && fs.statSync(absDir).isDirectory()) {
