@@ -196,30 +196,38 @@ export function activate(context: vscode.ExtensionContext) {
                                        });
 
                                         function initTree() {
-                                                document.querySelectorAll('.toggle').forEach(el => {
-                                                        el.addEventListener('click', () => {
-                                                                const id = el.getAttribute('data-id');
-                                                                if (!id) return;
-                                                                const row = document.querySelector(\`tr[data-id="\${id}\"]\`);
-                                                                if (!row) return;
-                                                                const depth = parseInt(row.getAttribute('data-depth') || '0', 10);
-                                                                const collapsed = row.classList.toggle('collapsed');
-                                                                (el as HTMLElement).textContent = collapsed ? '▸' : '▾';
-                                                                let next = row.nextElementSibling as HTMLElement | null;
-                                                                while (next && parseInt(next.getAttribute('data-depth') || '0', 10) > depth) {
-                                                                        let count = parseInt(next.getAttribute('data-hide-count') || '0', 10);
-                                                                        count += collapsed ? 1 : -1;
-                                                                        next.setAttribute('data-hide-count', String(count));
-                                                                        if (count > 0) {
-                                                                                next.classList.add('hidden');
-                                                                        } else {
-                                                                                next.classList.remove('hidden');
-                                                                        }
-                                                                        next = next.nextElementSibling as HTMLElement | null;
-                                                                }
-                                                        });
-                                                });
-                                        }
+            document.querySelectorAll(".toggle").forEach(toggle => {
+                const row = toggle.closest("tr");
+                if (!row) return;
+                toggle.addEventListener("click", () => {
+                    const depth = parseInt(row.getAttribute("data-depth") || "0", 10);
+                    const collapsed = row.classList.toggle("collapsed");
+                    (toggle as HTMLElement).textContent = collapsed ? "▸" : "▾";
+                    let next = row.nextElementSibling as HTMLElement | null;
+                    while (next && parseInt(next.getAttribute("data-depth") || "0", 10) > depth) {
+                        if (collapsed) {
+                            next.classList.add("hidden");
+                        } else if (!hasCollapsedParent(next, depth)) {
+                            next.classList.remove("hidden");
+                        }
+                        next = next.nextElementSibling as HTMLElement | null;
+                    }
+                });
+            });
+
+            function hasCollapsedParent(el: HTMLElement, minDepth: number): boolean {
+                let prev = el.previousElementSibling as HTMLElement | null;
+                while (prev) {
+                    const d = parseInt(prev.getAttribute("data-depth") || "0", 10);
+                    if (d < minDepth) break;
+                    if (prev.classList.contains("collapsed")) {
+                        return true;
+                    }
+                    prev = prev.previousElementSibling as HTMLElement | null;
+                }
+                return false;
+            }
+        }
 
                                         window.addEventListener('message', event => {
                                                 const msg = event.data;
