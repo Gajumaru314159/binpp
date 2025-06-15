@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -12,8 +13,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 		const document = editor.document;
 
-		const path = require('path');
-		const fileName = path.basename(document.fileName);
+               const fileName = path.basename(document.fileName);
 		const panel = vscode.window.createWebviewPanel(
 			'hexView',
 			`Preview ${fileName}`,
@@ -40,8 +40,7 @@ export function activate(context: vscode.ExtensionContext) {
 			return {address: addressLines.join('\n'), hex: hexLines.join('\n'), ascii: asciiLines.join('\n')};
 		}
 
-		const initialBytesPerLine = 16;
-		let currentBytesPerLine = initialBytesPerLine;
+               const initialBytesPerLine = 16;
 
 		function renderView(bytesPerLine: number) {
 			const hexAscii = toHexAsciiView(document.getText(), bytesPerLine);
@@ -65,8 +64,9 @@ export function activate(context: vscode.ExtensionContext) {
 				<style>
 					body { font-family: monospace; display: flex; flex-direction: column; }
 					.toolbar { margin-bottom: 10px; }
-					table { border-collapse: collapse; margin-right: 10px; }
-					td { padding: 0 5px; vertical-align: top; }
+                                       table { border-collapse: collapse; margin-right: 10px; }
+                                       td { padding: 0 5px; vertical-align: top; }
+                                       tr:nth-child(even) { background-color: #f5f5f5; }
 					.address td { color: gray; user-select: text; }
 					.hex td { letter-spacing: 0.1em; user-select: text; }
 					.ascii td { padding-left: 10px; user-select: text; }
