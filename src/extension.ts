@@ -103,7 +103,9 @@ export function activate(context: vscode.ExtensionContext) {
                                         .tree-table { border-collapse: collapse; width: 100%; }
                                         .tree-table td, .tree-table th { border: 1px solid; padding: 2px 4px; }
                                         .tree-table .name { white-space: pre; }
-				</style>
+                                        .tree-table .toggle { cursor: pointer; display: inline-block; width: 1em; }
+                                        .tree-table tr.hidden { display: none; }
+                               </style>
 			</head>
 			<body>
                         <div class="toolbar">
@@ -184,12 +186,39 @@ export function activate(context: vscode.ExtensionContext) {
                                                vscode.postMessage({ type: 'formatChange', value: formatSelect.value });
                                        });
 
+                                        function initTree() {
+                                                document.querySelectorAll('.toggle').forEach(el => {
+                                                        el.addEventListener('click', () => {
+                                                                const id = el.getAttribute('data-id');
+                                                                if (!id) return;
+                                                                const row = document.querySelector(\`tr[data-id="\${id}\"]\`);
+                                                                if (!row) return;
+                                                                const depth = parseInt(row.getAttribute('data-depth') || '0', 10);
+                                                                const collapsed = row.classList.toggle('collapsed');
+                                                                (el as HTMLElement).textContent = collapsed ? '▸' : '▾';
+                                                                let next = row.nextElementSibling as HTMLElement | null;
+                                                                while (next && parseInt(next.getAttribute('data-depth') || '0', 10) > depth) {
+                                                                        let count = parseInt(next.getAttribute('data-hide-count') || '0', 10);
+                                                                        count += collapsed ? 1 : -1;
+                                                                        next.setAttribute('data-hide-count', String(count));
+                                                                        if (count > 0) {
+                                                                                next.classList.add('hidden');
+                                                                        } else {
+                                                                                next.classList.remove('hidden');
+                                                                        }
+                                                                        next = next.nextElementSibling as HTMLElement | null;
+                                                                }
+                                                        });
+                                                });
+                                        }
+
                                         window.addEventListener('message', event => {
                                                 const msg = event.data;
                                                 if (msg.type === 'treeData') {
                                                         if (msg.html) {
                                                                 viewContainer.style.display = 'block';
                                                                 viewContainer.innerHTML = msg.html;
+                                                                initTree();
                                                         } else {
                                                                 updateView();
                                                         }

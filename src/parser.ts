@@ -12,6 +12,7 @@ export interface StructDef {
 export interface EnumDef {
     name: string;
     underlying: string;
+    entries: Record<number, string>;
 }
 
 export interface FormatDef {
@@ -24,7 +25,7 @@ export interface TreeNode {
     type: string;
     offset: number;
     size: number;
-    value?: number | number[];
+    value?: number | string | (number | string)[];
     children?: TreeNode[];
 }
 
@@ -42,12 +43,29 @@ export function parseFormatFile(content: string): FormatDef {
     const structs: Record<string, StructDef> = {};
     const enums: Record<string, EnumDef> = {};
 
-    const enumRegex = /enum(?:\s+class)?\s+(\w+)(?:\s*:\s*(\w+))?\s*{[\s\S]*?};/g;
+    const enumRegex = /enum(?:\s+class)?\s+(\w+)(?:\s*:\s*(\w+))?\s*{([\s\S]*?)}\s*;/g;
     let m: RegExpExecArray | null;
     while ((m = enumRegex.exec(content)) !== null) {
         const name = m[1];
         const underlying = m[2] || 'int32_t';
-        enums[name] = { name, underlying };
+        const body = m[3];
+        const entries: Record<number, string> = {};
+        const itemRegex = /(\w+)(?:\s*=\s*([^,]+))?/g;
+        let i: RegExpExecArray | null;
+        let value = 0;
+        while ((i = itemRegex.exec(body)) !== null) {
+            const ename = i[1];
+            const valStr = i[2];
+            if (valStr) {
+                const parsed = parseInt(valStr.trim(), 0);
+                if (!isNaN(parsed)) {
+                    value = parsed;
+                }
+            }
+            entries[value] = ename;
+            value++;
+        }
+        enums[name] = { name, underlying, entries };
     }
 
     const structRegex = /struct\s+(\w+)\s*{([\s\S]*?)}\s*;/g;
@@ -107,24 +125,25 @@ export function parseBinary(bytes: Uint8Array, format: FormatDef, rootName = 'Ro
 
     function parseField(field: FieldDef, ctx: Record<string, any>): TreeNode {
         const count = field.lengthExpr ? Math.max(0, evaluate(field.lengthExpr, ctx)) : 1;
-        const typeName = format.enums[field.type]?.underlying || field.type;
-        if (format.structs[typeName]) {
+        const enumDef = format.enums[field.type];
+        const baseType = enumDef?.underlying || field.type;
+        if (format.structs[baseType]) {
             const children: TreeNode[] = [];
             const ctxValues: Record<string, any>[] = [];
             const start = offset;
             for (let i = 0; i < count; i++) {
                 const childCtx: Record<string, any> = {};
-                const child = parseStruct(typeName, childCtx);
+                const child = parseStruct(baseType, childCtx);
                 child.name = `${field.name}[${i}]`;
                 children.push(child);
                 ctxValues.push(childCtx);
             }
             const size = offset - start;
             ctx[field.name] = ctxValues.length === 1 ? ctxValues[0] : ctxValues;
-            return { name: field.name, type: typeName, offset: start, size, children };
+            return { name: field.name, type: field.type, offset: start, size, children };
         }
 
-        const bsize = builtinSizes[typeName] ?? 1;
+        const bsize = builtinSizes[baseType] ?? 1;
         const values: number[] = [];
         const start = offset;
         for (let i = 0; i < count; i++) {
@@ -133,7 +152,7 @@ export function parseBinary(bytes: Uint8Array, format: FormatDef, rootName = 'Ro
                 throw new RangeError(`Offset is outside the bounds of the DataView while reading '${name}'`);
             }
             let val: number;
-            switch (typeName) {
+            switch (baseType) {
                 case 'int8_t':
                 case 'char':
                     val = view.getInt8(offset); break;
@@ -152,14 +171,19 @@ export function parseBinary(bytes: Uint8Array, format: FormatDef, rootName = 'Ro
             values.push(val);
         }
         ctx[field.name] = count === 1 ? values[0] : values;
-        return { name: field.name, type: typeName, offset: start, size: bsize * count, value: count === 1 ? values[0] : values };
+        const displayVals = values.map(v => enumDef ? (enumDef.entries[v] ?? v) : v);
+        const display = count === 1 ? displayVals[0] : displayVals;
+        return { name: field.name, type: field.type, offset: start, size: bsize * count, value: display };
     }
 
     return parseStruct(rootName, {});
 }
 
+let rowCounter = 0;
+
 function treeRows(node: TreeNode, depth = 0): string {
     const indent = depth * 20;
+    const id = ++rowCounter;
     const hasChildren = !!(node.children && node.children.length);
     const value = hasChildren
         ? ''
@@ -168,7 +192,8 @@ function treeRows(node: TreeNode, depth = 0): string {
                 ? '[' + node.value.join(', ') + ']'
                 : String(node.value)
             : '';
-    let html = `<tr><td class="name" style="padding-left:${indent}px">${node.name}</td>` +
+    const arrow = hasChildren ? `<span class="toggle" data-id="${id}">▾</span>` : '';
+    let html = `<tr data-id="${id}" data-depth="${depth}" data-hide-count="0"><td class="name" style="padding-left:${indent}px">${arrow}${node.name}</td>` +
         `<td>${value}</td><td>${node.type}</td></tr>`;
     if (node.children) {
         for (const c of node.children) {
@@ -179,6 +204,7 @@ function treeRows(node: TreeNode, depth = 0): string {
 }
 
 export function treeToHtml(node: TreeNode): string {
+    rowCounter = 0;
     const rows = treeRows(node);
     return `<table class="tree-table"><thead><tr><th>Name</th><th>Value</th><th>Type</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
