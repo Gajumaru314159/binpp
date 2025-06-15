@@ -195,39 +195,6 @@ export function activate(context: vscode.ExtensionContext) {
                                                vscode.postMessage({ type: 'formatChange', value: formatSelect.value });
                                        });
 
-                                        function initTree() {
-            document.querySelectorAll(".toggle").forEach(toggle => {
-                const row = toggle.closest("tr");
-                if (!row) return;
-                toggle.addEventListener("click", () => {
-                    const depth = parseInt(row.getAttribute("data-depth") || "0", 10);
-                    const collapsed = row.classList.toggle("collapsed");
-                    (toggle as HTMLElement).textContent = collapsed ? "▸" : "▾";
-                    let next = row.nextElementSibling as HTMLElement | null;
-                    while (next && parseInt(next.getAttribute("data-depth") || "0", 10) > depth) {
-                        if (collapsed) {
-                            next.classList.add("hidden");
-                        } else if (!hasCollapsedParent(next, depth)) {
-                            next.classList.remove("hidden");
-                        }
-                        next = next.nextElementSibling as HTMLElement | null;
-                    }
-                });
-            });
-
-            function hasCollapsedParent(el: HTMLElement, minDepth: number): boolean {
-                let prev = el.previousElementSibling as HTMLElement | null;
-                while (prev) {
-                    const d = parseInt(prev.getAttribute("data-depth") || "0", 10);
-                    if (d < minDepth) break;
-                    if (prev.classList.contains("collapsed")) {
-                        return true;
-                    }
-                    prev = prev.previousElementSibling as HTMLElement | null;
-                }
-                return false;
-            }
-        }
 
                                         window.addEventListener('message', event => {
                                                 const msg = event.data;
@@ -235,7 +202,6 @@ export function activate(context: vscode.ExtensionContext) {
                                                         if (msg.html) {
                                                                 viewContainer.style.display = 'block';
                                                                 viewContainer.innerHTML = msg.html;
-                                                                initTree();
                                                         } else {
                                                                 updateView();
                                                         }
