@@ -7,6 +7,7 @@ export interface WebviewOptions {
     initialOffset: number;
     initialArrayLimit: number;
     initialFormat?: string;
+    initialEndian: 'LE' | 'BE';
 }
 
 export function getHexViewHtml(webview: vscode.Webview, extensionUri: vscode.Uri, opts: WebviewOptions): string {
@@ -84,6 +85,11 @@ export function getHexViewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
     <label for="formatSelect">Format: </label>
     <select id="formatSelect" data-initial-format="${opts.initialFormat ?? ''}">
         ${opts.formatOptions}
+    </select>
+    <label for="endian">Endian: </label>
+    <select id="endian" data-initial-endian="${opts.initialEndian}">
+        <option value="LE"${opts.initialEndian === 'LE' ? ' selected' : ''}>Little Endian</option>
+        <option value="BE"${opts.initialEndian === 'BE' ? ' selected' : ''}>Big Endian</option>
     </select>
     <label for="arrayLimit">Array limit: </label>
     <input id="arrayLimit" type="number" value="${opts.initialArrayLimit}" style="width:80px;" />

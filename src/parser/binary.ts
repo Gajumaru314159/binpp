@@ -14,7 +14,8 @@ export function parseBinary(
     bytes: Uint8Array,
     format: FormatDef,
     maxArrayLength = 10000,
-    rootName = 'Root'
+    rootName = 'Root',
+    littleEndian = true
 ): TreeNode {
     const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     let offset = 0;
@@ -94,13 +95,13 @@ export function parseBinary(
                 case 'uint8_t':
                     val = view.getUint8(offset); break;
                 case 'int16_t':
-                    val = view.getInt16(offset, true); break;
+                    val = view.getInt16(offset, littleEndian); break;
                 case 'uint16_t':
-                    val = view.getUint16(offset, true); break;
+                    val = view.getUint16(offset, littleEndian); break;
                 case 'int32_t':
-                    val = view.getInt32(offset, true); break;
+                    val = view.getInt32(offset, littleEndian); break;
                 default:
-                    val = view.getUint32(offset, true); break;
+                    val = view.getUint32(offset, littleEndian); break;
             }
             offset += bsize;
             values.push(val);
