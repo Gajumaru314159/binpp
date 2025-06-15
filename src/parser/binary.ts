@@ -39,16 +39,18 @@ export function parseBinary(bytes: Uint8Array, format: FormatDef, rootName = 'Ro
         scopeStack.push(ctx);
         for (const field of def.fields) {
             const fieldNode = parseField(field, ctx);
-            node.children!.push(fieldNode);
+            if (fieldNode) {
+                node.children!.push(fieldNode);
+            }
         }
         scopeStack.pop();
         node.size = offset - start;
         return node;
     }
 
-    function parseField(field: FieldDef, ctx: Record<string, any>): TreeNode {
+    function parseField(field: FieldDef, ctx: Record<string, any>): TreeNode | null {
         if (field.conditionExpr && !evaluate(field.conditionExpr, ctx)) {
-            return { name: field.name, type: field.type, offset, size: 0 };
+            return null;
         }
         const count = field.lengthExpr ? Math.max(0, evaluate(field.lengthExpr, ctx)) : 1;
         const enumDef = format.enums[field.type];
