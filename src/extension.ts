@@ -20,6 +20,14 @@ export function activate(context: vscode.ExtensionContext): void {
 
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
         const { html: formatOptionsHtml, paths: formatPaths } = loadFormatOptions(workspaceFolder, output);
+        let initialFormat: string | undefined;
+        const ext = path.extname(fileName).replace('.', '');
+        if (ext) {
+            const candidate = `${ext}.h`;
+            if (formatPaths[candidate]) {
+                initialFormat = candidate;
+            }
+        }
         let currentFormat: FormatDef | undefined;
         let currentArrayLimit = 10000;
         let currentFormatPath: string | undefined;
@@ -45,6 +53,7 @@ export function activate(context: vscode.ExtensionContext): void {
             initialBytesPerLine: 16,
             initialOffset: 0,
             initialArrayLimit: currentArrayLimit,
+            initialFormat,
         });
 
         panel.webview.onDidReceiveMessage(message => {

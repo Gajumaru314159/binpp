@@ -19,6 +19,7 @@ let currentFocusIndex = -1;
 let currentBytesPerLine = parseInt(document.body.dataset.bytesPerLine || '16', 10);
 let currentOffset = parseInt(document.body.dataset.offset || '0', 10);
 let currentArrayLimit = parseInt(document.body.dataset.arrayLimit || '10000', 10);
+const initialFormat = formatSelect?.dataset.initialFormat || '';
 
 function renderView(bytesPerLine: number, offset: number): string {
     const slice = bytes.slice(offset);
@@ -112,3 +113,12 @@ viewContainer.addEventListener('input', e => {
 });
 
 updateView();
+if (formatSelect && initialFormat) {
+    for (const option of Array.from(formatSelect.options)) {
+        if (option.value === initialFormat) {
+            formatSelect.value = initialFormat;
+            sendParseRequest();
+            break;
+        }
+    }
+}
