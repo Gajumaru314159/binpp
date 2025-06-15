@@ -1,12 +1,10 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import { parseFormatFile, parseBinary, treeToHtml, FormatDef } from './parser';
 
 export function activate(context: vscode.ExtensionContext) {
 
-	console.log('Congratulations, your extension "helloworld-sample" is now active!');
-
-	const disposable = vscode.commands.registerCommand('binpp.open', () => {
 		const editor = vscode.window.activeTextEditor;
 		if (!editor) {
 			vscode.window.showInformationMessage('No active editor found.');
@@ -15,7 +13,39 @@ export function activate(context: vscode.ExtensionContext) {
 		const document = editor.document;
 
                const fileName = path.basename(document.fileName);
-		const panel = vscode.window.createWebviewPanel(
+
+               // Load format definitions from binpp.json
+               const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+               let formatOptionsHtml = '';
+               const formatPaths: Record<string, string> = {};
+               if (workspaceFolder) {
+                       const configPath = path.join(workspaceFolder, 'binpp.json');
+                       if (fs.existsSync(configPath)) {
+                               try {
+                                       const configRaw = fs.readFileSync(configPath, 'utf8');
+                                                                       formatPaths[f] = path.join(absDir, f);
+               let currentFormat: FormatDef | undefined;
+                                       const config = JSON.parse(configRaw) as { formats?: string[]; };
+                                       const dirs = config.formats ?? [];
+                                       const formatFiles: string[] = ["(None)"];
+                                       for (const d of dirs) {
+                                               const absDir = path.isAbsolute(d) ? d : path.join(workspaceFolder, d);
+                                               if (fs.existsSync(absDir) && fs.statSync(absDir).isDirectory()) {
+                                                       for (const f of fs.readdirSync(absDir)) {
+                                                               if (f.endsWith('.h')) {
+                                                                       formatFiles.push(f);
+                                                               }
+                                                       }
+                                               }
+                                       }
+                                       formatOptionsHtml = formatFiles.map(f => `<option value="${f}">${f}</option>`).join('');
+                               } catch (err) {
+                                       console.error('Failed to read binpp.json', err);
+                               }
+                       }
+               }
+
+               const panel = vscode.window.createWebviewPanel(
 			'hexView',
 			`Preview ${fileName}`,
 			vscode.ViewColumn.One,
@@ -76,22 +106,27 @@ export function activate(context: vscode.ExtensionContext) {
                                         <input id="offset" type="number" value="0" style="width:100px;" />
                                         <label for="bytesPerLine">Bytes per line: </label>
                                         <select id="bytesPerLine">
-						<option value="1">1</option>
-						<option value="2">2</option>
-						<option value="4">4</option>
-						<option value="8">8</option>
-						<option value="16" selected>16</option>
-						<option value="32">32</option>
-						<option value="64">64</option>
-						<option value="128">128</option>
-					</select>
-				</div>
+                                                <option value="1">1</option>
+                                                <option value="2">2</option>
+                                                <option value="4">4</option>
+                                                <option value="8">8</option>
+                                                <option value="16" selected>16</option>
+                                                <option value="32">32</option>
+                                                <option value="64">64</option>
+                                                <option value="128">128</option>
+                                        </select>
+                                        <label for="formatSelect">Format: </label>
+                                        <select id="formatSelect">
+                                                ${formatOptionsHtml}
+                                        </select>
+                                </div>
                                 <div class="view-container" id="viewContainer"></div>
                                 <script>
                                         const vscode = acquireVsCodeApi();
                                         const rawData = '${base64Data}';
                                         const bytes = Uint8Array.from(atob(rawData), c => c.charCodeAt(0));
                                         const select = document.getElementById('bytesPerLine');
+                                        const formatSelect = document.getElementById('formatSelect');
                                         const offsetInput = document.getElementById('offset');
                                         const viewContainer = document.getElementById('viewContainer');
 
@@ -139,6 +174,20 @@ export function activate(context: vscode.ExtensionContext) {
 
                                         select.addEventListener('change', updateView);
                                         offsetInput.addEventListener('change', updateView);
+                                       formatSelect?.addEventListener('change', () => {
+                                               vscode.postMessage({ type: 'formatChange', value: formatSelect.value });
+                                       });
+
+                                        window.addEventListener('message', event => {
+                                                const msg = event.data;
+                                                if (msg.type === 'treeData') {
+                                                        if (msg.html) {
+                                                                viewContainer.innerHTML = msg.html;
+                                                        } else {
+                                                                updateView();
+                                                        }
+                                                }
+                                        });
 
                                         viewContainer.addEventListener('focusin', e => {
                                                 const target = e.target;
@@ -174,6 +223,21 @@ export function activate(context: vscode.ExtensionContext) {
                panel.webview.onDidReceiveMessage(message => {
                        if (message.type === 'cursorMove') {
                                statusBarItem.text = `Offset: 0x${message.index.toString(16).padStart(8, '0')}`;
+                       } else if (message.type === 'formatChange') {
+                               const selected = message.value as string;
+                               if (selected && formatPaths[selected]) {
+                                       try {
+                                               const content = fs.readFileSync(formatPaths[selected], 'utf8');
+                                               currentFormat = parseFormatFile(content);
+                                               const tree = parseBinary(fileBytes, currentFormat);
+                                               const html = '<ul>' + treeToHtml(tree) + '</ul>';
+                                               panel.webview.postMessage({ type: 'treeData', html });
+                                       } catch (err) {
+                                               console.error('Parse failed', err);
+                                       }
+                               } else {
+                                       panel.webview.postMessage({ type: 'treeData', html: '' });
+                               }
                        }
                });
 
