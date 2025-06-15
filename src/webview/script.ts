@@ -1,4 +1,7 @@
-declare const acquireVsCodeApi: any;
+interface VsCodeApi {
+    postMessage(message: unknown): void;
+}
+declare function acquireVsCodeApi(): VsCodeApi;
 
 const vscode = acquireVsCodeApi();
 const rawData = document.body.dataset.base64 || '';

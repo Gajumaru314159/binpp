@@ -64,10 +64,10 @@ export function activate(context: vscode.ExtensionContext): void {
                         const tree = parseBinary(fileBytes, currentFormat, currentArrayLimit);
                         const html = treeToHtml(tree);
                         panel.webview.postMessage({ type: 'treeData', html });
-                    } catch (err: any) {
-                        const msg = err?.message || String(err);
+                    } catch (err: unknown) {
+                        const msg = err instanceof Error ? err.message : String(err);
                         output.appendLine(`[parse] ${msg}`);
-                        if (err?.stack) {
+                        if (err instanceof Error && err.stack) {
                             output.appendLine(err.stack);
                         }
                         vscode.window.showErrorMessage('Parse failed: ' + msg + '. See "binpp" output for details.');
