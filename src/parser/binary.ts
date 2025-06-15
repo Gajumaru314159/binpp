@@ -94,13 +94,15 @@ export function parseBinary(bytes: Uint8Array, format: FormatDef, rootName = 'Ro
         }
         ctx[field.name] = count === 1 ? values[0] : values;
         let display: number | string | (number | string)[];
+        let typeStr = field.type;
         if (baseType === 'char' && count > 1) {
             display = String.fromCharCode(...values);
+            typeStr = 'char[]';
         } else {
             const displayVals = values.map(v => enumDef ? (enumDef.entries[v] ?? v) : v);
             display = count === 1 ? displayVals[0] : displayVals;
         }
-        return { name: field.name, type: field.type, offset: start, size: bsize * count, value: display };
+        return { name: field.name, type: typeStr, offset: start, size: bsize * count, value: display };
     }
 
     return parseStruct(rootName, {});
