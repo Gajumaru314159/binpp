@@ -274,6 +274,7 @@ export function activate(context: vscode.ExtensionContext) {
                                        } catch (err: any) {
                                                console.error('Parse failed', err);
                                                vscode.window.showErrorMessage('Parse failed: ' + err.message);
+                                               panel.webview.postMessage({ type: 'treeData', html: '' });
                                        }
                                } else {
                                        panel.webview.postMessage({ type: 'treeData', html: '' });
