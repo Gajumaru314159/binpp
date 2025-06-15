@@ -37,10 +37,30 @@ export function activate(context: vscode.ExtensionContext) {
 		const hexViewHtml = `
 			<html>
 			<head>
+                               <meta name="color-scheme" content="light dark" />
 
-				<style>
-					body { font-family: monospace; display: flex; flex-direction: column; }
-					.toolbar { margin-bottom: 10px; }
+                                <style>
+                                        body {
+                                                font-family: monospace;
+                                                display: flex;
+                                                flex-direction: column;
+                                                color: var(--vscode-editor-foreground);
+                                                background-color: var(--vscode-editor-background);
+                                        }
+                                        .toolbar {
+                                                margin-bottom: 10px;
+                                                position: sticky;
+                                                top: 0;
+                                                background-color: var(--vscode-editor-background);
+                                                color: var(--vscode-editor-foreground);
+                                                padding: 4px;
+                                                z-index: 1;
+                                        }
+                                        input, select {
+                                                background-color: var(--vscode-input-background);
+                                                color: var(--vscode-input-foreground);
+                                                border: 1px solid var(--vscode-input-border);
+                                        }
 					table { border-collapse: collapse; margin-right: 10px; }
 					td { padding: 0 5px; vertical-align: top; }
 					.address td { color: gray; user-select: text; }
