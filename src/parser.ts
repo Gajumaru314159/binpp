@@ -157,15 +157,27 @@ export function parseBinary(bytes: Uint8Array, format: FormatDef, rootName = 'Ro
     return parseStruct(rootName, {});
 }
 
-export function treeToHtml(node: TreeNode): string {
-    let html = `<li><span>${node.name} (${node.type})`;
-    if (node.value !== undefined) {
-        html += ` : ${Array.isArray(node.value) ? '[' + node.value.join(', ') + ']' : node.value}`;
+function treeRows(node: TreeNode, depth = 0): string {
+    const indent = depth * 20;
+    const hasChildren = !!(node.children && node.children.length);
+    const value = hasChildren
+        ? ''
+        : node.value !== undefined
+            ? Array.isArray(node.value)
+                ? '[' + node.value.join(', ') + ']'
+                : String(node.value)
+            : '';
+    let html = `<tr><td class="name" style="padding-left:${indent}px">${node.name}</td>` +
+        `<td>${value}</td><td>${node.type}</td></tr>`;
+    if (node.children) {
+        for (const c of node.children) {
+            html += treeRows(c, depth + 1);
+        }
     }
-    html += '</span>';
-    if (node.children && node.children.length) {
-        html += '<ul>' + node.children.map(c => treeToHtml(c)).join('') + '</ul>';
-    }
-    html += '</li>';
     return html;
+}
+
+export function treeToHtml(node: TreeNode): string {
+    const rows = treeRows(node);
+    return `<table class="tree-table"><thead><tr><th>Name</th><th>Value</th><th>Type</th></tr></thead><tbody>${rows}</tbody></table>`;
 }

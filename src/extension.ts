@@ -100,6 +100,9 @@ export function activate(context: vscode.ExtensionContext) {
                                         .ascii td { padding-left: 10px; user-select: text; }
                                         .byte { outline: none; min-width: 20px; text-align: center; }
                                         .view-container { display: flex; }
+                                        .tree-table { border-collapse: collapse; width: 100%; }
+                                        .tree-table td, .tree-table th { border: 1px solid; padding: 2px 4px; }
+                                        .tree-table .name { white-space: pre; }
 				</style>
 			</head>
 			<body>
@@ -165,6 +168,7 @@ export function activate(context: vscode.ExtensionContext) {
                                         function updateView(focusIndex = -1) {
                                                 currentBytesPerLine = parseInt(select.value, 10);
                                                 currentOffset = parseInt(offsetInput.value, 10) || 0;
+                                                viewContainer.style.display = 'flex';
                                                 viewContainer.innerHTML = renderView(currentBytesPerLine, currentOffset);
                                                 if (focusIndex >= 0) {
                                                         const el = viewContainer.querySelector(\`td.byte[data-index="\${focusIndex}"]\`);
@@ -184,6 +188,7 @@ export function activate(context: vscode.ExtensionContext) {
                                                 const msg = event.data;
                                                 if (msg.type === 'treeData') {
                                                         if (msg.html) {
+                                                                viewContainer.style.display = 'block';
                                                                 viewContainer.innerHTML = msg.html;
                                                         } else {
                                                                 updateView();
@@ -235,7 +240,7 @@ export function activate(context: vscode.ExtensionContext) {
                                                        throw new Error('Format file lacks Root struct');
                                                }
                                                const tree = parseBinary(fileBytes, currentFormat);
-                                               const html = '<ul>' + treeToHtml(tree) + '</ul>';
+                                               const html = treeToHtml(tree);
                                                panel.webview.postMessage({ type: 'treeData', html });
                                        } catch (err: any) {
                                                console.error('Parse failed', err);
