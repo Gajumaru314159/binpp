@@ -34,13 +34,14 @@ export function parseFormatFile(content: string): FormatDef {
         const name = m[1];
         const body = m[2];
         const fields: FieldDef[] = [];
-        const lineRegex = /([a-zA-Z_]\w*)\s+([a-zA-Z_]\w*)(\s*\[(.+?)\])?\s*;/g;
+        const lineRegex = /([a-zA-Z_]\w*)\s+([a-zA-Z_]\w*)(\s*\[(.+?)\])?(?:\s+if\s+([^;]+))?\s*;(?:\s*\/\/\s*if\s*(.+))?/g;
         let f: RegExpExecArray | null;
         while ((f = lineRegex.exec(body)) !== null) {
             const type = f[1];
             const fname = f[2];
             const lengthExpr = f[4];
-            fields.push({ name: fname, type, lengthExpr });
+            const conditionExpr = f[5] || f[6];
+            fields.push({ name: fname, type, lengthExpr, conditionExpr });
         }
         structs[name] = { name, fields };
     }

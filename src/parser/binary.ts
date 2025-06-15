@@ -43,14 +43,19 @@ export function parseBinary(
         scopeStack.push(ctx);
         for (const field of def.fields) {
             const fieldNode = parseField(field, ctx);
-            node.children!.push(fieldNode);
+            if (fieldNode) {
+                node.children!.push(fieldNode);
+            }
         }
         scopeStack.pop();
         node.size = offset - start;
         return node;
     }
 
-    function parseField(field: FieldDef, ctx: Record<string, unknown>): TreeNode {
+    function parseField(field: FieldDef, ctx: Record<string, unknown>): TreeNode | null {
+        if (field.conditionExpr && !evaluate(field.conditionExpr, ctx)) {
+            return null;
+        }
         const count = field.lengthExpr ? Math.max(0, evaluate(field.lengthExpr, ctx)) : 1;
         if (count > maxArrayLength) {
             throw new Error(`Array '${field.name}' length ${count} exceeds limit ${maxArrayLength}`);
