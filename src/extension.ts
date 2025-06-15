@@ -21,6 +21,7 @@ export function activate(context: vscode.ExtensionContext): void {
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
         const { html: formatOptionsHtml, paths: formatPaths } = loadFormatOptions(workspaceFolder, output);
         let currentFormat: FormatDef | undefined;
+        let currentFormatPath: string | undefined;
 
         const panel = vscode.window.createWebviewPanel(
             'hexView',
@@ -29,8 +30,8 @@ export function activate(context: vscode.ExtensionContext): void {
             { enableScripts: true }
         );
 
-        const fileBytes = fs.readFileSync(document.uri.fsPath);
-        const base64Data = fileBytes.toString('base64');
+        let fileBytes = fs.readFileSync(document.uri.fsPath);
+        let base64Data = fileBytes.toString('base64');
 
         const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
         statusBarItem.text = 'Offset: 0x00000000';
@@ -51,7 +52,8 @@ export function activate(context: vscode.ExtensionContext): void {
                 const selected = message.value as string;
                 if (selected && formatPaths[selected]) {
                     try {
-                        const content = fs.readFileSync(formatPaths[selected], 'utf8');
+                        currentFormatPath = formatPaths[selected];
+                        const content = fs.readFileSync(currentFormatPath, 'utf8');
                         currentFormat = parseFormatFile(content);
                         if (!currentFormat.structs['Root']) {
                             throw new Error('Format file lacks Root struct');
@@ -69,7 +71,34 @@ export function activate(context: vscode.ExtensionContext): void {
                         panel.webview.postMessage({ type: 'treeData', html: '' });
                     }
                 } else {
+                    currentFormatPath = undefined;
+                    currentFormat = undefined;
                     panel.webview.postMessage({ type: 'treeData', html: '' });
+                }
+            } else if (message.type === 'reload') {
+                try {
+                    fileBytes = fs.readFileSync(document.uri.fsPath);
+                    base64Data = fileBytes.toString('base64');
+                    panel.webview.postMessage({ type: 'fileData', base64Data });
+                    if (currentFormatPath) {
+                        const content = fs.readFileSync(currentFormatPath, 'utf8');
+                        currentFormat = parseFormatFile(content);
+                        if (!currentFormat.structs['Root']) {
+                            throw new Error('Format file lacks Root struct');
+                        }
+                        const tree = parseBinary(fileBytes, currentFormat);
+                        const html = treeToHtml(tree);
+                        panel.webview.postMessage({ type: 'treeData', html });
+                    } else {
+                        panel.webview.postMessage({ type: 'treeData', html: '' });
+                    }
+                } catch (err: any) {
+                    const msg = err?.message || String(err);
+                    output.appendLine(`[reload] ${msg}`);
+                    if (err?.stack) {
+                        output.appendLine(err.stack);
+                    }
+                    vscode.window.showErrorMessage('Reload failed: ' + msg + '. See "binpp" output for details.');
                 }
             }
         });

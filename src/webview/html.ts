@@ -35,6 +35,15 @@ export function getHexViewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
             color: var(--vscode-input-foreground);
             border: 1px solid var(--vscode-input-border);
         }
+        button {
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: 1px solid var(--vscode-button-border);
+            padding: 2px 8px;
+        }
+        button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
         table { border-collapse: collapse; margin-right: 10px; }
         td { padding: 0 5px; vertical-align: top; }
         .address td { color: gray; user-select: text; }
@@ -68,6 +77,7 @@ export function getHexViewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
     <select id="formatSelect">
         ${opts.formatOptions}
     </select>
+    <button id="reload">Reload</button>
 </div>
 <div class="view-container" id="viewContainer"></div>
 <script src="${scriptUri}"></script>
