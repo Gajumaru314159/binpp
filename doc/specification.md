@@ -1,359 +1,171 @@
-# バイナリビューアー仕様書
+# Visual Studio Code 拡張機能：バイナリエディタ仕様書
 
-## 1. はじめに
+## 概要
 
-- **目的**: ゲーム開発現場において、独自バイナリや一般的なバイナリ（TTFやMIDIなど）の構造を可視化・解析し、効率的にデータ検証やデバッグを行うこと。
-- **背景・範囲**: ゲームエンジンで生成・利用される各種バイナリファイル（最大10MB程度）を対象とし、Windows/macOS/Linux上で動作する軽量なビューアを提供。
+本ドキュメントは、Visual Studio Code 拡張機能として実装される「バイナリエディタ」の仕様を記載するものである。本拡張機能は任意のバイナリファイルを解析・表示し、構造体に基づく可視化を提供するものである。
 
-## 2. システム概要
+## 1. 基本仕様
 
-- **プラットフォーム**: Webブラウザ上で動作するシングルページアプリケーション（SPA）
-- **動作環境**: 最新のChromium系（Edge/Chrome）、Firefox、Safariなどのモダンブラウザ
-- **動作モード**: 完全クライアントサイド（ローカルファイル読み込みのみ）、サーバー通信なし
-- **機能概要**:
-  - バイナリファイルの読み込み
-  - 16進ダンプ表示
-  - 文字列表示（ASCII/UTF-8）
-  - オフセット・アドレス表示
+- **起動方法**：特定の拡張子に依存せず、コマンドパレット（`Ctrl+Shift+P`）からバイナリエディタビューを起動。
+- **ジャンプ機能**：`Ctrl+G`で指定アドレスにジャンプ可能。
+- **ツールバー**：
+  - オフセット入力欄を設置し、任意のオフセットを0バイト目とみなして表示切り替え。
+  - 表示単位切替（1行あたり：8, 16, 32, 64, 128バイト）
+- **ステータスバー表示**：
+  - 現在のカーソル位置（アドレス）
+  - オフセットを考慮した実アドレス
+  - 選択範囲がある場合は選択バイト数を表示
 
-## 3. 要件. 要件
+## 2. 表示モード
 
-### 3.1 機能要件
+- **HEXビュー**：
 
-1. **ファイルオープン/クローズ**
+  - 左側：アドレス
+  - 中央：HEX値
+  - 右側：ASCII / UTF-8 / Shift-JIS の文字列表示（切替可能）
 
-   - メニューまたはツールバーからのファイルダイアログ起動
-   - ファイルドラッグ＆ドロップ対応
-   - 開いたファイルのパス表示
-   - 複数ファイルの同時オープン（タブ切り替え方式）
-   - ファイルクローズ時の変更確認ダイアログ（未保存の解析設定がある場合）
+- **構造体ビュー**：
 
-2. **任意オフセットへのジャンプ**
+  - ツールバーのコンボボックスで構造体ファイル（`.h`）を選択可能
+  - 選択すると HEX ビューから構造体ツリービューに切り替わる
+  - Visual Studio のデバッガーライクな UI でメンバを展開可能
+  - "目" アイコンをオフにすると HEX ビューに戻る
 
-   - オフセット入力欄（16進/10進切替可能）
-   - 「移動」ボタンで指定位置へスクロール
-   - 入力値のバリデーション（範囲チェック、形式エラー時のエラーメッセージ表示）
+## 3. 構造体定義ファイル仕様
 
-3. **データ検索**
+### 3.1 構文
 
-   - 16進値検索：バイト単位での16進文字列検索（例："0A FF 1B"）
-   - 文字列検索：ASCII/UTF-8での文字列検索（大文字小文字区別オプション）
-   - 検索ダイアログ：検索文字列入力、オプション選択（エンディアン考慮、部分一致、完全一致）
-   - 次/前のヒット移動ボタン
-   - 検索結果のハイライト表示
+- C++ライクな記法（サブセット）
+- 対応構文：`struct`, `enum`, メンバ変数、ネスト構造体
+- `enum` は既定の型（`: int`, `: uint8_t` など）を指定可能
 
-4. **エンディアン切替**
+```cpp
+struct A {
+  int size;
+  int flags;
+  Format format;
+};
 
-   - ビッグエンディアン/リトルエンディアン切り替えスイッチ
-   - 2/4/8バイト単位でのワード表示（バイトグループ化）
-   - 整数表示モード：符号付き/符号無し切替
-
-5. **表示設定**
-
-   - バイト列のグループ化（1/2/4バイトごと）
-   - 表示文字エンコーディング選択（ASCII/UTF-8/Shift-JIS）
-   - カラム幅/フォントサイズ調整
-   - ダーク/ライトテーマ切替
-
-6. **ステータスバー表示**
-
-   - 現在のオフセット位置
-   - 選択範囲バイト数
-   - ファイルサイズ
-   - 選択データの16進/10進/2進表示
-
-7. **保存/エクスポート**
-
-   - 現在表示範囲のダンプをテキストファイル（.txt/.csv）でエクスポート
-   - 検索結果リストの保存
-   - 解析設定（表示モード、エンディアン設定など）のプリセット保存・読み込み
-
-### 3.2 非機能要件
-
-- パフォーマンス: 大容量ファイル（数GB）対応
-- プラットフォーム: Windows/macOS/Linux
-- 堅牢性: 不正ファイルの読み込み時に適切にエラー処理
-
-## 4. UI設計
-
-### 4.1 メインウィンドウ
-
-- **レイアウト**:
-  - ヘッダー（メニューバー＋ツールバー）
-  - メインペイン：水平スプリットビュー
-    - 左ペイン：オフセット（アドレス）列
-    - 中央ペイン：16進ダンプ列
-    - 右ペイン：文字列表示列
-  - フッター（ステータスバー）
+  // enum の既定の型は : int, : uint8_t, : uint32_t などで明示的に指定可能
+enum class Format : uint8_t {
+  RGB = 0,
+  RGBA = 1,
+  Depth = 2
+};
 
 ```
-+-------------------------------------------------------------+
-| [File][Edit][View][Help]   [Open] [Save] [Search] [Endian]   |
-+-------------------------------------------------------------+
-| Addr      | Hex Dump                     | ASCII/Encoding   |
-| 00000000h | 4D 5A 90 00 ...               | MZ..             |
-| 00000010h | 03 00 00 00 ...               | ....             |
-| ...       | ...                           | ...              |
-+-------------------------------------------------------------+
-| Offset: 0x10   Selected: 4 bytes   File: example.bin (1.2MB) |
-+-------------------------------------------------------------+
+
+### 3.2 配列のサイズ式
+- メンバ変数は、**同一スコープまたは親スコープの読み取り済み変数**を使用してサイズを定義可能
+- 配列サイズの定義には **四則演算（+, -, *, /）および括弧 `()` による式のグルーピング** が使用可能
+```cpp
+struct Image {
+  int width;
+  int height;
+  char pixels[width * height];
+};
 ```
 
-### 4.2 メニューバー
+### 3.3 スコープ越え参照
 
-- **File**: Open, Close, Export Dump, Exit
-- **Edit**: Find, Go To Offset, Preferences
-- **View**: Toggle Theme, Toggle Endian, Font Size↑/↓
-- **Help**: Documentation, About
+- 子構造体内で `親構造体のメンバ名.変数名` によりアクセス可能
 
-### 4.3 ツールバー
+```cpp
+struct WeaponInfo {
+  int nameLen;
+};
 
-- **アイコンボタン**:
-  - Open (📂)
-  - Save/Export (💾)
-  - Search (🔍)
-  - Go To Offset (➡️)
-  - Endian Toggle (BE/LE)
-  - Theme Toggle (🌙/☀️)
+struct Weapon {
+  char name[weaponInfo.nameLen];
+};
 
-### 4.4 コンテキストメニュー
-
-- 右クリックで表示
-  - Copy (選択範囲のバイト列コピー)
-  - Bookmark (オフセットブックマーク)
-  - Interpret As: UInt16/UInt32/Float
-  - Highlight Selection
-
-### 4.5 ダイアログ設計
-
-#### 4.5.1 検索ダイアログ
-
-- **入力欄**: 検索文字列（16進 or 文字列）
-- **オプション**:
-  - Data Type: Hex／ASCII／UTF-8／Shift-JIS
-  - Match: 完全一致／部分一致
-  - Case Sensitive
-  - Endian Aware
-- **ボタン**: Find Next, Find Prev, Close
-
-#### 4.5.2 ジャンプダイアログ
-
-- **入力欄**: Offset（16進／10進 切替チェックボックス）
-- **ボタン**: Go, Cancel
-
-#### 4.5.3 設定（Preferences）
-
-- **タブ**:
-  - Display: Font, Theme, Column Width
-  - Data: Default Encoding, Default Endian
-  - Export: Default Export Format（TXT/CSV）
-  - Advanced: Memory Mapping vs Streaming
-
----
-
-### 4.6 構造体/列挙体ビューモード
-
-- **目的**: C++ライクな構造体やenum定義に基づき、バイナリのフィールドを名前付きで解析・表示する機能。
-
-- **定義ファイル読み込み**:
-
-  - ユーザーが独自の構造体/enumを記述したテキストファイル（.h/.hppライク形式）をインポート
-  - 複数ファイルの同時読み込み対応
-  - パーサー例：
-    ```cpp
-    struct A {
-      int size;
-      int flags;
-      Format format;
-    };
-    enum Format {
-      RGB,
-      RGBA,
-      Depth
-    };
-    ```
-
-- **可変長配列のサポートと式評価**:
-
-  - メンバー定義で動的長さの配列を指定可能
-  - 配列長の式には同一構造体内の先行フィールドや親スコープの配列要素を使用可能
-  - 親スコープ変数へのアクセスは配列名とインデックスを `$i` 形式で指定（例: `fileInfos[$i].nameLen`）
-  - パーサー例：
-    ```cpp
-    struct Entity {
-      int nameLen;
-      char name[nameLen];
-    };
-    struct FileInfo {
-      int nameLen;
-      int dataLen;
-    };
-    struct File {
-      char name[fileInfos[$i].nameLen];
-      char data[fileInfos[$i].dataLen];
-    };
-    struct Archive {
-      int fileNum;
-      FileInfo fileInfos[fileNum];
-      File files[fileNum];
-    };
-    ```
-  - 実装:
-    1. パース時に構造体定義を解析し、配列長式の依存関係グラフを構築
-    2. バイナリ読み込み時に先行フィールドや親スコープ要素の値を順次評価
-    3. 配列要素数を確定し、必要バイト数を読み込んでマッピング
-
-- **表示**:
-
-  - 左ペインにツリービューで構造体/enum一覧を表示
-  - ユーザーが構造体を選択すると、中央ペインに対応バイトレイアウトとフィールドマッピングを表示
-  - フィールド毎のオフセット、サイズ、型、配列要素情報を列挙
-  - 配列要素はツリー形式で子ノード表示
-  - 式評価結果（例: 各要素数）を表示
-  - フラグビットやenum値については対応ラベルを表示
-
-- **編集/更新**:
-
-  - 定義ファイル更新時に再読み込みボタンでビューを更新
-  - パースエラー時にはエラーメッセージと行番号を表示
-
-- **連携**:
-
-  - ダンプビュー上でフィールド／配列要素をクリックすると該当オフセットへジャンプ
-  - 構造体ビューペインとダンプビューは同期スクロール可能
-
-\---## 5. ファイルフォーマット対応## 5. ファイルフォーマット対応. ファイルフォーマット対応
-
-- 汎用バイナリ
-- 特定フォーマット（PE/ELF/Mach-Oなど）への拡張検討
-
-## 6. 操作フロー
-
-1. ファイルを開く
-2. データを読み込み表示
-3. ユーザー操作（検索、ジャンプ）
-4. ファイルを閉じる
-
-## 7. 実装・技術詳細
-
-- **開発言語**: TypeScript
-- **フレームワーク/ライブラリ**: React or Vue 3（任意）、またはVanilla TypeScript + Lit
-- **ビルドツール**: Vite または webpack
-- **バイナリ読み込み**: HTML5 FileReader API を使用
-- **メモリ管理**: ArrayBuffer, DataView でバイナリ解析
-- **構造体パーサー**: 独自実装または nearley.js などのパーサーライブラリ
-- **UIコンポーネント**: Tailwind CSS または shadcn/ui を利用可能
-- **配布方式**: 静的ファイルとしてホスティング可能（GitHub Pages 等）
-- **サーバー通信**: なし（API はローカルのみ）
-- **その他ツール**:
-  - ESLint + Prettier でコード品質担保
-  - Jest または Vitest でユニットテスト
-
-## 8. テスト・検証
-
-- **ユニットテストフレームワーク**
-  - **Vitest** を採用
-    - 特徴: Viteとの親和性が高く、テスト実行が高速。ネイティブESMとTypeScript対応。
-    - 導入: `npm install --save-dev vitest @vitest/ui @testing-library/vue` (Vue利用時) または `@testing-library/react` (React利用時)
-    - 設定例: `vite.config.ts` 内に
-      ```ts
-      import { defineConfig } from 'vite'
-      import vue from '@vitejs/plugin-vue'
-
-      export default defineConfig({
-        plugins: [vue()],
-        test: {
-          globals: true,
-          environment: 'jsdom',
-          coverage: {
-            reporter: ['text', 'lcov'],
-          },
-        },
-      })
-      ```
-- **テスト対象**
-  - 構造体パーサーのパースロジック
-  - バイナリ読み込み・DataView操作ユーティリティ
-  - UIコンポーネントのレンダリングとユーザー操作（Testing Library併用）
-- **CI連携 (GitHub Actions)**
-  - GitHubリポジトリ上で自動テスト実行
-  - サンプル `.github/workflows/test.yml`:
-    ```yaml
-    name: CI
-    on: [push, pull_request]
-    jobs:
-      test:
-        runs-on: ubuntu-latest
-        steps:
-          - uses: actions/checkout@v3
-          - name: Setup Node.js
-            uses: actions/setup-node@v3
-            with:
-              node-version: '18'
-          - name: Install dependencies
-            run: npm ci
-          - name: Run tests
-            run: npm run test:ci
-          - name: Upload coverage report
-            uses: actions/upload-artifact@v3
-            with:
-              name: coverage-report
-              path: coverage
-    ```
-  - `package.json` にて:
-    ```json
-    {
-      "scripts": {
-        "test": "vitest",
-        "test:ci": "vitest --run --coverage"
-      }
-    }
-    ```
-
-## 9. 今後の拡張
-
-- プラグイン機構
-- ファイルフォーマット解析機能
-
-## 10. ディレクトリ構成
-
-ローカルでTypeScript+ReactベースのSPAを想定した推奨構成例:
-
-```
-project-root/
-├─ public/                 # HTMLテンプレートや静的ファイル
-│   └─ index.html
-├─ src/                    # アプリケーションコード
-│   ├─ components/         # 汎用UIコンポーネント
-│   ├─ views/              # ページ／スクリーン単位のコンポーネント
-│   ├─ hooks/              # カスタムフック
-│   ├─ utils/              # ユーティリティ関数
-│   ├─ parser/             # バイナリパーサーおよびDataViewユーティリティ
-│   ├─ store/              # 状態管理（Redux, Zustandなど）
-│   ├─ styles/             # グローバルCSS／Tailwind設定
-│   ├─ assets/             # 画像やフォントなどのアセット
-│   ├─ format/             # カスタムフォーマットファイル保存用
-│   ├─ doc/                # 設計メモ、仕様書（Markdownなど）
-│   ├─ App.tsx             # ルートコンポーネント
-│   └─ index.tsx           # エントリーポイント
-├─ tests/                  # テストコード（ユニット／結合テスト）
-├─ .github/                # GitHub ActionsなどCI設定
-│   └─ workflows/
-├─ vitest.config.ts        # Vitest設定
-├─ tsconfig.json           # TypeScript設定
-├─ package.json            # 依存関係とスクリプト
-└─ vite.config.ts          # ビルドツール設定
+struct Enemy {
+  int tagNum;
+  WeaponInfo weaponInfo;
+  int weaponNum;
+  Weapon weapons[weaponNum];
+};
 ```
 
-- **public/**: 静的にホスティングされるファイルを配置
-- **src/components/**: 再利用可能な小粒なUIパーツ
-- **src/views/**: ページ全体や主要ビューをまとめる
-- **src/hooks/**: ロジックを切り出したカスタムフック
-- **src/parser/**: 独自のバイナリパーサー実装を配置
-- **src/format/**: 独自フォーマット定義ファイル（.fmt等）を保存
-- **src/doc/**: 設計メモ、仕様書Markdownなど、ドキュメント類
-- **tests/**: Vitest用のテストファイル
-- **.github/workflows/**: CI/CDの定義
+- 暗黙的に `Enemy.weaponInfo` を `Weapon` 側で参照している。`Weapon` 自体に `weaponInfo` が存在しない場合は、親スコープ（`Enemy`）の同名メンバを遡って検索する。
 
-必要に応じて `services/`, `contexts/` など追加しても構いません。
+### 3.4 \$i インデックスの使用
 
+- 配列参照時、`$i` により自身のインデックスに応じたサイズ参照が可能
+
+```cpp
+struct FileInfo {
+  int nameLen;
+  int dataLen;
+};
+
+struct File {
+  char name[fileInfos[$i].nameLen];
+  char data[fileInfos[$i].dataLen];
+};
+
+struct Archive {
+  int fileNum;
+  FileInfo fileInfos[fileNum];
+  File files[fileNum];
+};
+```
+
+- `File` の `name` や `data` のサイズが `Archive` の `fileInfos` から `$i` を用いて決定されている。
+- 暗黙的に構造体定義上の並び順に従い、`files` の `$i` 番目に対応する `fileInfos[$i]` を前提とする。
+- 配列が入れ子になっている場合は階層が近いものから$i, $j, $k という風にインデックス名が変わっていく
+
+### 3.5 パースのエントリポイント
+
+- パースの開始点は `struct Root` とする
+
+```cpp
+struct Header {
+  int dataOffset;
+  int dataSize;
+  int footerOffset;
+  int footerSize;
+};
+
+struct Footer {
+  int signatureSize;
+  char signature[signatureSize];
+};
+
+struct Root {
+  Header header;
+  char data[header.dataSize];
+  Footer footer;
+};
+```
+
+- メンバの読み取り順序により、`header` の `dataSize` を参照して `data` の長さを決定。
+- 暗黙的に、先に定義されたメンバの読み取り後にのみ依存関係が評価される。
+
+## 4. 構造体ファイルの管理
+
+- `settings.json` にて `.h` ファイルを格納したフォルダを複数登録可能
+- `ファイル名.h` と同名拡張子のファイルに対して自動的に構造体を適用（例：`tga.h` → `*.tga`）
+- さらに、**ワークスペースルートに **``** が存在する場合**、このファイルに記述されたディレクトリも構造体ファイルの探索対象とする。
+  - `binpp.json` に記述されるパスは、**絶対パス**または `binpp.json` からの**相対パス**で記載される
+  - 形式例：
+
+```json
+{
+  "includePaths": [
+    "./formats",
+    "/usr/local/binpp/formats"
+  ]
+}
+```
+
+## 5. テスト・デバッグ
+
+- 単体テスト実行可能な構成（例：ファイル単体で構造体定義を評価）
+- 構造体評価の失敗や未解決参照に対してエラー表示・ヒントを提供
+
+## 6. 将来的な拡張項目（案）
+
+- 構造体ビューでのフィールド編集とバイナリ反映
+- フォーマット毎のカスタムビジュアライザ（画像/音声など）
+- オートハイライト（ポインタやフラグへの意味づけ）
