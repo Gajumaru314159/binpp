@@ -103,15 +103,17 @@ export function parseBinary(bytes: Uint8Array, format: FormatDef, rootName = 'Ro
         const typeName = format.enums[field.type]?.underlying || field.type;
         if (format.structs[typeName]) {
             const children: TreeNode[] = [];
+            const ctxValues: Record<string, any>[] = [];
             const start = offset;
             for (let i = 0; i < count; i++) {
                 const childCtx: Record<string, any> = {};
                 const child = parseStruct(typeName, childCtx);
                 child.name = `${field.name}[${i}]`;
                 children.push(child);
+                ctxValues.push(childCtx);
             }
             const size = offset - start;
-            ctx[field.name] = children.length === 1 ? children[0] : children;
+            ctx[field.name] = ctxValues.length === 1 ? ctxValues[0] : ctxValues;
             return { name: field.name, type: typeName, offset: start, size, children };
         }
 
