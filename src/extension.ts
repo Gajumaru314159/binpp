@@ -36,7 +36,10 @@ export function activate(context: vscode.ExtensionContext): void {
             'hexView',
             `Preview ${fileName}`,
             vscode.ViewColumn.One,
-            { enableScripts: true }
+            {
+                enableScripts: true,
+                retainContextWhenHidden: true,
+            }
         );
 
         let fileBytes = fs.readFileSync(document.uri.fsPath);
