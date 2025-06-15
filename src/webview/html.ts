@@ -6,6 +6,7 @@ export interface WebviewOptions {
     initialBytesPerLine: number;
     initialOffset: number;
     initialArrayLimit: number;
+    initialFormat?: string;
 }
 
 export function getHexViewHtml(webview: vscode.Webview, extensionUri: vscode.Uri, opts: WebviewOptions): string {
@@ -81,7 +82,7 @@ export function getHexViewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
         <option value="128">128</option>
     </select>
     <label for="formatSelect">Format: </label>
-    <select id="formatSelect">
+    <select id="formatSelect" data-initial-format="${opts.initialFormat ?? ''}">
         ${opts.formatOptions}
     </select>
     <label for="arrayLimit">Array limit: </label>
