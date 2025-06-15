@@ -46,30 +46,10 @@ export function activate(context: vscode.ExtensionContext): void {
         let fileBytes = fs.readFileSync(document.uri.fsPath);
         let base64Data = fileBytes.toString('base64');
 
-<<<<<<< HEAD
         const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
         statusBarItem.text = 'Offset: 0x00000000';
         statusBarItem.show();
         context.subscriptions.push(statusBarItem);
-=======
-		// バイナリデータを16進数とASCIIに変換する関数
-		function toHexAsciiView(text: string, bytesPerLine: number): {address: string, hex: string, ascii: string} {
-			const bytes = Buffer.from(text, 'utf8');
-			const addressLines: string[] = [];
-			const hexLines: string[] = [];
-			const asciiLines: string[] = [];
-			for (let i = 0; i < bytes.length; i += bytesPerLine) {
-				const slice = bytes.slice(i, i + bytesPerLine);
-				const address = i.toString(16).padStart(8, '0');
-				const hexBytes = Array.from(slice).map(b => b.toString(16).padStart(2, '0')).join(' ');
-				const ascii = Array.from(slice).map(b => (b >= 32 && b <= 126) ? String.fromCharCode(b) : '.').join('');
-				addressLines.push(`<tr><td>${address}</td></tr>`);
-				hexLines.push(`<tr><td>${hexBytes.padEnd(bytesPerLine * 3 - 1, ' ')}</td></tr>`);
-				asciiLines.push(`<tr><td>${ascii}</td></tr>`);
-			}
-			return {address: addressLines.join('\n'), hex: hexLines.join('\n'), ascii: asciiLines.join('\n')};
-		}
->>>>>>> parent of d37e32c... Merge pull request #19 from Gajumaru314159/codex/treeviewの4列目にアドレス表示
 
         panel.webview.html = getHexViewHtml(panel.webview, context.extensionUri, {
             base64Data,
@@ -80,8 +60,6 @@ export function activate(context: vscode.ExtensionContext): void {
             initialFormat,
             initialEndian: 'LE',
         });
-
-<<<<<<< HEAD
         panel.webview.onDidReceiveMessage(message => {
             if (message.type === 'cursorMove') {
                 statusBarItem.text = `Offset: 0x${message.index.toString(16).padStart(8, '0')}`;
@@ -147,70 +125,6 @@ export function activate(context: vscode.ExtensionContext): void {
             statusBarItem.hide();
         });
     });
-=======
-		function renderView(bytesPerLine: number) {
-			const hexAscii = toHexAsciiView(document.getText(), bytesPerLine);
-			return `
-			<table class="address">
-				${hexAscii.address}
-			</table>
-			<table class="hex">
-				${hexAscii.hex}
-			</table>
-			<table class="ascii">
-				${hexAscii.ascii}
-			</table>
-			`;
-		}
-
-		const hexViewHtml = `
-			<html>
-			<head>
-
-				<style>
-					body { font-family: monospace; display: flex; flex-direction: column; }
-					.toolbar { margin-bottom: 10px; }
-					table { border-collapse: collapse; margin-right: 10px; }
-					td { padding: 0 5px; vertical-align: top; }
-					.address td { color: gray; user-select: text; }
-					.hex td { letter-spacing: 0.1em; user-select: text; }
-					.ascii td { padding-left: 10px; user-select: text; }
-					.view-container { display: flex; }
-				</style>
-			</head>
-			<body>
-				<div class="toolbar">
-					<label for="bytesPerLine">Bytes per line: </label>
-					<select id="bytesPerLine">
-						<option value="1">1</option>
-						<option value="2">2</option>
-						<option value="4">4</option>
-						<option value="8">8</option>
-						<option value="16" selected>16</option>
-						<option value="32">32</option>
-						<option value="64">64</option>
-						<option value="128">128</option>
-					</select>
-				</div>
-				<div class="view-container" id="viewContainer">
-					${renderView(initialBytesPerLine)}
-				</div>
-				<script>
-					const vscode = acquireVsCodeApi();
-					const select = document.getElementById('bytesPerLine');
-					const viewContainer = document.getElementById('viewContainer');
-					select.addEventListener('change', () => {
-						const val = parseInt(select.value, 10);
-						viewContainer.innerHTML = renderView(val)};
-					});
-				</script>
-			</body>
-			</html>
-		`;
-
-		panel.webview.html = hexViewHtml;
-	});
->>>>>>> parent of d37e32c... Merge pull request #19 from Gajumaru314159/codex/treeviewの4列目にアドレス表示
 
     context.subscriptions.push(disposable);
     context.subscriptions.push(output);
