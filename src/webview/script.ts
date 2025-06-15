@@ -1,17 +1,24 @@
-declare const acquireVsCodeApi: any;
+interface VsCodeApi {
+    postMessage(message: unknown): void;
+}
+declare function acquireVsCodeApi(): VsCodeApi;
 
 const vscode = acquireVsCodeApi();
 const rawData = document.body.dataset.base64 || '';
-const bytes = Uint8Array.from(atob(rawData), c => c.charCodeAt(0));
+let bytes = Uint8Array.from(atob(rawData), c => c.charCodeAt(0));
 
 const select = document.getElementById('bytesPerLine') as HTMLSelectElement;
 const formatSelect = document.getElementById('formatSelect') as HTMLSelectElement | null;
 const offsetInput = document.getElementById('offset') as HTMLInputElement;
+const arrayLimitInput = document.getElementById('arrayLimit') as HTMLInputElement | null;
+const reloadButton = document.getElementById('reload') as HTMLButtonElement | null;
+
 const viewContainer = document.getElementById('viewContainer') as HTMLElement;
 
 let currentFocusIndex = -1;
 let currentBytesPerLine = parseInt(document.body.dataset.bytesPerLine || '16', 10);
 let currentOffset = parseInt(document.body.dataset.offset || '0', 10);
+let currentArrayLimit = parseInt(document.body.dataset.arrayLimit || '10000', 10);
 
 function renderView(bytesPerLine: number, offset: number): string {
     const slice = bytes.slice(offset);
@@ -53,9 +60,16 @@ function updateView(focusIndex = -1): void {
 
 select.addEventListener('change', () => updateView());
 offsetInput.addEventListener('change', () => updateView());
-formatSelect?.addEventListener('change', () => {
-    vscode.postMessage({ type: 'formatChange', value: formatSelect.value });
-});
+function sendParseRequest(): void {
+    if (!formatSelect) {
+        return;
+    }
+    currentArrayLimit = parseInt(arrayLimitInput?.value || '0', 10) || currentArrayLimit;
+    vscode.postMessage({ type: 'parse', format: formatSelect.value, limit: currentArrayLimit });
+}
+
+formatSelect?.addEventListener('change', sendParseRequest);
+arrayLimitInput?.addEventListener('change', sendParseRequest);
 
 window.addEventListener('message', event => {
     const msg = event.data;
@@ -66,6 +80,11 @@ window.addEventListener('message', event => {
         } else {
             updateView();
         }
+    } else if (msg.type === 'fileData') {
+        const base64 = msg.base64Data as string;
+        document.body.dataset.base64 = base64;
+        bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+        updateView(currentFocusIndex);
     }
 });
 
