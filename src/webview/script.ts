@@ -12,6 +12,7 @@ const formatSelect = document.getElementById('formatSelect') as HTMLSelectElemen
 const offsetInput = document.getElementById('offset') as HTMLInputElement;
 const arrayLimitInput = document.getElementById('arrayLimit') as HTMLInputElement | null;
 const reloadButton = document.getElementById('reload') as HTMLButtonElement | null;
+const endianSelect = document.getElementById('endian') as HTMLSelectElement | null;
 
 const viewContainer = document.getElementById('viewContainer') as HTMLElement;
 
@@ -20,6 +21,7 @@ let currentBytesPerLine = parseInt(document.body.dataset.bytesPerLine || '16', 1
 let currentOffset = parseInt(document.body.dataset.offset || '0', 10);
 let currentArrayLimit = parseInt(document.body.dataset.arrayLimit || '10000', 10);
 const initialFormat = formatSelect?.dataset.initialFormat || '';
+const initialEndian = endianSelect?.dataset.initialEndian || 'LE';
 
 function renderView(bytesPerLine: number, offset: number): string {
     const slice = bytes.slice(offset);
@@ -66,11 +68,17 @@ function sendParseRequest(): void {
         return;
     }
     currentArrayLimit = parseInt(arrayLimitInput?.value || '0', 10) || currentArrayLimit;
-    vscode.postMessage({ type: 'parse', format: formatSelect.value, limit: currentArrayLimit });
+    const little = (endianSelect?.value || 'LE') === 'LE';
+    vscode.postMessage({ type: 'parse', format: formatSelect.value, limit: currentArrayLimit, littleEndian: little });
 }
 
 formatSelect?.addEventListener('change', sendParseRequest);
 arrayLimitInput?.addEventListener('change', sendParseRequest);
+endianSelect?.addEventListener('change', sendParseRequest);
+reloadButton?.addEventListener('click', () => {
+    const little = (endianSelect?.value || 'LE') === 'LE';
+    vscode.postMessage({ type: 'reload', littleEndian: little });
+});
 
 window.addEventListener('message', event => {
     const msg = event.data;
@@ -121,4 +129,7 @@ if (formatSelect && initialFormat) {
             break;
         }
     }
+}
+if (endianSelect && initialEndian) {
+    endianSelect.value = initialEndian;
 }

@@ -31,6 +31,7 @@ export function activate(context: vscode.ExtensionContext): void {
         let currentFormat: FormatDef | undefined;
         let currentArrayLimit = 10000;
         let currentFormatPath: string | undefined;
+        let currentLittleEndian = true;
 
         const panel = vscode.window.createWebviewPanel(
             'hexView',
@@ -54,6 +55,7 @@ export function activate(context: vscode.ExtensionContext): void {
             initialOffset: 0,
             initialArrayLimit: currentArrayLimit,
             initialFormat,
+            initialEndian: 'LE',
         });
 
         panel.webview.onDidReceiveMessage(message => {
@@ -62,6 +64,7 @@ export function activate(context: vscode.ExtensionContext): void {
             } else if (message.type === 'parse') {
                 const selected = message.format as string;
                 currentArrayLimit = typeof message.limit === 'number' ? message.limit : currentArrayLimit;
+                currentLittleEndian = message.littleEndian !== false;
                 if (selected && formatPaths[selected]) {
                     try {
                         currentFormatPath = formatPaths[selected];
@@ -70,7 +73,7 @@ export function activate(context: vscode.ExtensionContext): void {
                         if (!currentFormat.structs['Root']) {
                             throw new Error('Format file lacks Root struct');
                         }
-                        const tree = parseBinary(fileBytes, currentFormat, currentArrayLimit);
+                        const tree = parseBinary(fileBytes, currentFormat, currentArrayLimit, 'Root', currentLittleEndian);
                         const html = treeToHtml(tree);
                         panel.webview.postMessage({ type: 'treeData', html });
                     } catch (err: unknown) {
@@ -88,6 +91,7 @@ export function activate(context: vscode.ExtensionContext): void {
                     panel.webview.postMessage({ type: 'treeData', html: '' });
                 }
             } else if (message.type === 'reload') {
+                currentLittleEndian = message.littleEndian !== false;
                 try {
                     fileBytes = fs.readFileSync(document.uri.fsPath);
                     base64Data = fileBytes.toString('base64');
@@ -98,7 +102,7 @@ export function activate(context: vscode.ExtensionContext): void {
                         if (!currentFormat.structs['Root']) {
                             throw new Error('Format file lacks Root struct');
                         }
-                        const tree = parseBinary(fileBytes, currentFormat);
+                        const tree = parseBinary(fileBytes, currentFormat, currentArrayLimit, 'Root', currentLittleEndian);
                         const html = treeToHtml(tree);
                         panel.webview.postMessage({ type: 'treeData', html });
                     } else {
