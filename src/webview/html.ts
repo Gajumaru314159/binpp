@@ -5,6 +5,7 @@ export interface WebviewOptions {
     formatOptions: string;
     initialBytesPerLine: number;
     initialOffset: number;
+    initialArrayLimit: number;
 }
 
 export function getHexViewHtml(webview: vscode.Webview, extensionUri: vscode.Uri, opts: WebviewOptions): string {
@@ -64,7 +65,7 @@ export function getHexViewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
         .tree-table tr.hidden { display: none; }
     </style>
 </head>
-<body data-base64="${opts.base64Data}" data-bytes-per-line="${opts.initialBytesPerLine}" data-offset="${opts.initialOffset}">
+<body data-base64="${opts.base64Data}" data-bytes-per-line="${opts.initialBytesPerLine}" data-offset="${opts.initialOffset}" data-array-limit="${opts.initialArrayLimit}">
 <div class="toolbar">
     <label for="offset">Offset: </label>
     <input id="offset" type="number" value="0" style="width:100px;" />
@@ -83,6 +84,8 @@ export function getHexViewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
     <select id="formatSelect">
         ${opts.formatOptions}
     </select>
+    <label for="arrayLimit">Array limit: </label>
+    <input id="arrayLimit" type="number" value="${opts.initialArrayLimit}" style="width:80px;" />
     <button id="reload">Reload</button>
 </div>
 <div class="view-container" id="viewContainer"></div>
