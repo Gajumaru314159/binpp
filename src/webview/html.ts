@@ -43,7 +43,13 @@ export function getHexViewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
         .byte { outline: none; min-width: 20px; text-align: center; }
         .view-container { display: flex; }
         .tree-table { border-collapse: collapse; width: 100%; }
-        .tree-table td, .tree-table th { border: 1px solid; padding: 2px 4px; }
+        .tree-table td, .tree-table th { border: none; padding: 2px 4px; }
+        .tree-table tbody tr:nth-child(odd) {
+            background-color: var(--vscode-sideBar-background, var(--vscode-editor-background));
+        }
+        .tree-table tbody tr:nth-child(even) {
+            background-color: var(--vscode-editor-background);
+        }
         .tree-table .name { white-space: pre; }
         .tree-table .toggle { cursor: pointer; display: inline-block; width: 1em; }
         .tree-table tr.hidden { display: none; }
