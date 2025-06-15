@@ -68,6 +68,7 @@ export function getHexViewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
     <select id="formatSelect">
         ${opts.formatOptions}
     </select>
+    <button id="reload">Reload</button>
 </div>
 <div class="view-container" id="viewContainer"></div>
 <script src="${scriptUri}"></script>
