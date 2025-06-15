@@ -20,32 +20,43 @@ function activate(context) {
             const addressLines = [];
             const hexLines = [];
             const asciiLines = [];
+            const prefixedAddressLines = [];
             for (let i = 0; i < bytes.length; i += bytesPerLine) {
                 const slice = bytes.slice(i, i + bytesPerLine);
                 const address = i.toString(16).padStart(8, '0');
+                const prefixed = `0x${address}`;
                 const hexBytes = Array.from(slice).map(b => b.toString(16).padStart(2, '0')).join(' ');
                 const ascii = Array.from(slice).map(b => (b >= 32 && b <= 126) ? String.fromCharCode(b) : '.').join('');
                 addressLines.push(`<tr><td>${address}</td></tr>`);
                 hexLines.push(`<tr><td>${hexBytes.padEnd(bytesPerLine * 3 - 1, ' ')}</td></tr>`);
                 asciiLines.push(`<tr><td>${ascii}</td></tr>`);
+                prefixedAddressLines.push(`<tr><td>${prefixed}</td></tr>`);
             }
-            return { address: addressLines.join('\n'), hex: hexLines.join('\n'), ascii: asciiLines.join('\n') };
+            return {
+                address: addressLines.join('\n'),
+                hex: hexLines.join('\n'),
+                ascii: asciiLines.join('\n'),
+                prefixedAddress: prefixedAddressLines.join('\n'),
+            };
         }
         const initialBytesPerLine = 16;
         let currentBytesPerLine = initialBytesPerLine;
         function renderView(bytesPerLine) {
             const hexAscii = toHexAsciiView(document.getText(), bytesPerLine);
             return `
-			<table class="address">
-				${hexAscii.address}
-			</table>
-			<table class="hex">
-				${hexAscii.hex}
-			</table>
-			<table class="ascii">
-				${hexAscii.ascii}
-			</table>
-			`;
+                        <table class="address">
+                                ${hexAscii.address}
+                        </table>
+                        <table class="hex">
+                                ${hexAscii.hex}
+                        </table>
+                        <table class="ascii">
+                                ${hexAscii.ascii}
+                        </table>
+                        <table class="prefixed-address">
+                                ${hexAscii.prefixedAddress}
+                        </table>
+                        `;
         }
         const hexViewHtml = `
 			<html>
@@ -59,8 +70,9 @@ function activate(context) {
 					.address td { color: gray; user-select: text; }
 					.hex td { letter-spacing: 0.1em; user-select: text; }
 					.ascii td { padding-left: 10px; user-select: text; }
-					.view-container { display: flex; }
-				</style>
+                                        .view-container { display: flex; }
+                                        .prefixed-address td { color: gray; user-select: text; }
+                                </style>
 			</head>
 			<body>
 				<div class="toolbar">
