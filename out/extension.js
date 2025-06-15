@@ -25,7 +25,13 @@ function activate(context) {
 
 				<style>
 					body { font-family: monospace; display: flex; flex-direction: column; }
-					.toolbar { margin-bottom: 10px; }
+                                        .toolbar {
+                                                margin-bottom: 10px;
+                                                position: sticky;
+                                                top: 0;
+                                                background-color: white;
+                                                z-index: 1;
+                                        }
 					table { border-collapse: collapse; margin-right: 10px; }
 					td { padding: 0 5px; vertical-align: top; }
 					.address td { color: gray; user-select: text; }
