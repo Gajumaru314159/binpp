@@ -31,5 +31,4 @@ struct Header {
 
 struct Root {
     Header header;
-    char pixels[header.width * header.height * header.bitsPerPixel / 8];
 };

@@ -128,6 +128,9 @@ export function parseBinary(bytes: Uint8Array, format: FormatDef, rootName = 'Ro
         const values: number[] = [];
         const start = offset;
         for (let i = 0; i < count; i++) {
+            if (offset + bsize > view.byteLength) {
+                throw new RangeError('Offset is outside the bounds of the DataView');
+            }
             let val: number;
             switch (typeName) {
                 case 'int8_t':
