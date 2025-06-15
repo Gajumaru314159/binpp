@@ -36,6 +36,15 @@ export function getHexViewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
             color: var(--vscode-input-foreground);
             border: 1px solid var(--vscode-input-border);
         }
+        button {
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: 1px solid var(--vscode-button-border);
+            padding: 2px 8px;
+        }
+        button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
         table { border-collapse: collapse; margin-right: 10px; }
         td { padding: 0 5px; vertical-align: top; }
         .address td { color: gray; user-select: text; }
@@ -44,7 +53,13 @@ export function getHexViewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
         .byte { outline: none; min-width: 20px; text-align: center; }
         .view-container { display: flex; }
         .tree-table { border-collapse: collapse; width: 100%; }
-        .tree-table td, .tree-table th { border: 1px solid; padding: 2px 4px; }
+        .tree-table td, .tree-table th { border: none; padding: 2px 4px; }
+        .tree-table tbody tr:nth-child(odd) {
+            background-color: var(--vscode-sideBar-background, var(--vscode-editor-background));
+        }
+        .tree-table tbody tr:nth-child(even) {
+            background-color: var(--vscode-editor-background);
+        }
         .tree-table .name { white-space: pre; }
         .tree-table .toggle { cursor: pointer; display: inline-block; width: 1em; }
         .tree-table tr.hidden { display: none; }
@@ -71,6 +86,7 @@ export function getHexViewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
     </select>
     <label for="arrayLimit">Array limit: </label>
     <input id="arrayLimit" type="number" value="${opts.initialArrayLimit}" style="width:80px;" />
+    <button id="reload">Reload</button>
 </div>
 <div class="view-container" id="viewContainer"></div>
 <script src="${scriptUri}"></script>

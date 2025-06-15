@@ -2,12 +2,14 @@ declare const acquireVsCodeApi: any;
 
 const vscode = acquireVsCodeApi();
 const rawData = document.body.dataset.base64 || '';
-const bytes = Uint8Array.from(atob(rawData), c => c.charCodeAt(0));
+let bytes = Uint8Array.from(atob(rawData), c => c.charCodeAt(0));
 
 const select = document.getElementById('bytesPerLine') as HTMLSelectElement;
 const formatSelect = document.getElementById('formatSelect') as HTMLSelectElement | null;
 const offsetInput = document.getElementById('offset') as HTMLInputElement;
 const arrayLimitInput = document.getElementById('arrayLimit') as HTMLInputElement | null;
+const reloadButton = document.getElementById('reload') as HTMLButtonElement | null;
+
 const viewContainer = document.getElementById('viewContainer') as HTMLElement;
 
 let currentFocusIndex = -1;
@@ -75,6 +77,11 @@ window.addEventListener('message', event => {
         } else {
             updateView();
         }
+    } else if (msg.type === 'fileData') {
+        const base64 = msg.base64Data as string;
+        document.body.dataset.base64 = base64;
+        bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+        updateView(currentFocusIndex);
     }
 });
 
