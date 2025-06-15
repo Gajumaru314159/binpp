@@ -5,6 +5,9 @@ import { parseFormatFile, parseBinary, treeToHtml, FormatDef } from './parser';
 
 export function activate(context: vscode.ExtensionContext) {
 
+        const output = vscode.window.createOutputChannel('binpp');
+        output.appendLine('binpp extension activated');
+
         const disposable = vscode.commands.registerCommand('binpp.open', () => {
 
                 const editor = vscode.window.activeTextEditor;
@@ -41,8 +44,14 @@ export function activate(context: vscode.ExtensionContext) {
                                                }
                                        }
                                        formatOptionsHtml = formatFiles.map(f => `<option value="${f}">${f}</option>`).join('');
-                               } catch (err) {
+                               } catch (err: any) {
+                                       const msg = err?.message || String(err);
+                                       output.appendLine(`[config] ${msg}`);
+                                       if (err?.stack) {
+                                               output.appendLine(err.stack);
+                                       }
                                        console.error('Failed to read binpp.json', err);
+                                       vscode.window.showErrorMessage('Failed to read binpp.json: ' + msg + '. See "binpp" output for details.');
                                }
                        }
                }
@@ -272,8 +281,13 @@ export function activate(context: vscode.ExtensionContext) {
                                                const html = treeToHtml(tree);
                                                panel.webview.postMessage({ type: 'treeData', html });
                                        } catch (err: any) {
+                                               const msg = err?.message || String(err);
+                                               output.appendLine(`[parse] ${msg}`);
+                                               if (err?.stack) {
+                                                       output.appendLine(err.stack);
+                                               }
                                                console.error('Parse failed', err);
-                                               vscode.window.showErrorMessage('Parse failed: ' + err.message);
+                                               vscode.window.showErrorMessage('Parse failed: ' + msg + '. See "binpp" output for details.');
                                                panel.webview.postMessage({ type: 'treeData', html: '' });
                                        }
                                } else {
@@ -287,5 +301,6 @@ export function activate(context: vscode.ExtensionContext) {
                });
         });
 
-	context.subscriptions.push(disposable);
+       context.subscriptions.push(disposable);
+       context.subscriptions.push(output);
 }
