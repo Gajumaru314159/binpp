@@ -5,7 +5,9 @@ import { parseFormatFile, parseBinary, treeToHtml, FormatDef } from './parser';
 
 export function activate(context: vscode.ExtensionContext) {
 
-		const editor = vscode.window.activeTextEditor;
+        const disposable = vscode.commands.registerCommand('binpp.open', () => {
+
+                const editor = vscode.window.activeTextEditor;
 		if (!editor) {
 			vscode.window.showInformationMessage('No active editor found.');
 			return;
@@ -18,14 +20,13 @@ export function activate(context: vscode.ExtensionContext) {
                const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
                let formatOptionsHtml = '';
                const formatPaths: Record<string, string> = {};
+               let currentFormat: FormatDef | undefined;
                if (workspaceFolder) {
                        const configPath = path.join(workspaceFolder, 'binpp.json');
                        if (fs.existsSync(configPath)) {
                                try {
                                        const configRaw = fs.readFileSync(configPath, 'utf8');
-                                                                       formatPaths[f] = path.join(absDir, f);
-               let currentFormat: FormatDef | undefined;
-                                       const config = JSON.parse(configRaw) as { formats?: string[]; };
+                                       const config = JSON.parse(configRaw) as { formats?: string[] };
                                        const dirs = config.formats ?? [];
                                        const formatFiles: string[] = ["(None)"];
                                        for (const d of dirs) {
@@ -34,6 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
                                                        for (const f of fs.readdirSync(absDir)) {
                                                                if (f.endsWith('.h')) {
                                                                        formatFiles.push(f);
+                                                                       formatPaths[f] = path.join(absDir, f);
                                                                }
                                                        }
                                                }
