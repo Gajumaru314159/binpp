@@ -36,10 +36,10 @@ export function loadFormatOptions(workspaceFolder: string | undefined, output: {
             }
         }
         html = formatFiles.map(f => `<option value="${f}">${f}</option>`).join('');
-    } catch (err: any) {
-        const msg = err?.message || String(err);
+    } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
         output.appendLine(`[config] ${msg}`);
-        if (err?.stack) {
+        if (err instanceof Error && err.stack) {
             output.appendLine(err.stack);
         }
     }
