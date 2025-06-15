@@ -129,7 +129,8 @@ export function parseBinary(bytes: Uint8Array, format: FormatDef, rootName = 'Ro
         const start = offset;
         for (let i = 0; i < count; i++) {
             if (offset + bsize > view.byteLength) {
-                throw new RangeError('Offset is outside the bounds of the DataView');
+                const name = count === 1 ? field.name : `${field.name}[${i}]`;
+                throw new RangeError(`Offset is outside the bounds of the DataView while reading '${name}'`);
             }
             let val: number;
             switch (typeName) {
