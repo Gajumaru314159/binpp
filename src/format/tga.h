@@ -8,8 +8,16 @@ enum ImageType : uint8_t {
     RleGray = 11,
 };
 
+struct RGB {
+    uint8_t blue;
+    uint8_t green;
+    uint8_t red;
+};
+
 struct Colormap {
-    uint32_t colors[width*height];
+    uint8_t colors[width*height]; // if imageType == 1
+    RGB colors[width*height]; // if imageType == 2
+    uint8_t colors[width*height]; // if imageType == 3
 };
 
 struct Header {
@@ -27,4 +35,8 @@ struct Header {
     uint8_t     imageDescriptor;
     char        imageId[idLength];
     Colormap    colormap;
+};
+
+struct Root {
+    Header header;
 };
