@@ -62,10 +62,10 @@ export function activate(context: vscode.ExtensionContext) {
                                                 border: 1px solid var(--vscode-input-border);
                                         }
 					table { border-collapse: collapse; margin-right: 10px; }
-					td { padding: 0 5px; vertical-align: top; }
+                                        td { padding: 0 2px; vertical-align: top; }
 					.address td { color: gray; user-select: text; }
 					.hex td { letter-spacing: 0.1em; user-select: text; }
-                                        .ascii td { padding-left: 10px; user-select: text; }
+                                        .ascii td { padding-left: 2px; user-select: text; }
                                         .byte { outline: none; min-width: 20px; text-align: center; }
                                         .view-container { display: flex; }
 				</style>
