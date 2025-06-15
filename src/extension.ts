@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import { parseFormatFile, parseBinary, treeToHtml, FormatDef } from './parser';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -17,11 +18,14 @@ export function activate(context: vscode.ExtensionContext) {
                // Load format definitions from binpp.json
                const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
                let formatOptionsHtml = '';
+               const formatPaths: Record<string, string> = {};
                if (workspaceFolder) {
                        const configPath = path.join(workspaceFolder, 'binpp.json');
                        if (fs.existsSync(configPath)) {
                                try {
                                        const configRaw = fs.readFileSync(configPath, 'utf8');
+                                                                       formatPaths[f] = path.join(absDir, f);
+               let currentFormat: FormatDef | undefined;
                                        const config = JSON.parse(configRaw) as { formats?: string[]; };
                                        const dirs = config.formats ?? [];
                                        const formatFiles: string[] = ["(None)"];
@@ -171,8 +175,19 @@ export function activate(context: vscode.ExtensionContext) {
 
                                         select.addEventListener('change', updateView);
                                         offsetInput.addEventListener('change', updateView);
-                                        formatSelect?.addEventListener('change', () => {
-                                                vscode.postMessage({ type: 'formatChange', value: formatSelect.value });
+                                       formatSelect?.addEventListener('change', () => {
+                                               vscode.postMessage({ type: 'formatChange', value: formatSelect.value });
+                                       });
+
+                                        window.addEventListener('message', event => {
+                                                const msg = event.data;
+                                                if (msg.type === 'treeData') {
+                                                        if (msg.html) {
+                                                                viewContainer.innerHTML = msg.html;
+                                                        } else {
+                                                                updateView();
+                                                        }
+                                                }
                                         });
 
                                         viewContainer.addEventListener('focusin', e => {
@@ -210,7 +225,20 @@ export function activate(context: vscode.ExtensionContext) {
                        if (message.type === 'cursorMove') {
                                statusBarItem.text = `Offset: 0x${message.index.toString(16).padStart(8, '0')}`;
                        } else if (message.type === 'formatChange') {
-                               console.log('Selected format:', message.value);
+                               const selected = message.value as string;
+                               if (selected && formatPaths[selected]) {
+                                       try {
+                                               const content = fs.readFileSync(formatPaths[selected], 'utf8');
+                                               currentFormat = parseFormatFile(content);
+                                               const tree = parseBinary(fileBytes, currentFormat);
+                                               const html = '<ul>' + treeToHtml(tree) + '</ul>';
+                                               panel.webview.postMessage({ type: 'treeData', html });
+                                       } catch (err) {
+                                               console.error('Parse failed', err);
+                                       }
+                               } else {
+                                       panel.webview.postMessage({ type: 'treeData', html: '' });
+                               }
                        }
                });
 
