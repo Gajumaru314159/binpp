@@ -64,18 +64,27 @@ export function parseBinary(
         const enumDef = format.enums[field.type];
         const baseType = enumDef?.underlying || field.type;
         if (format.structs[baseType]) {
+            const start = offset;
+            if (count === 1) {
+                const childCtx: Record<string, unknown> = {};
+                const child = parseStruct(baseType, childCtx);
+                child.name = field.name;
+                child.type = field.type;
+                ctx[field.name] = childCtx;
+                return child;
+            }
             const children: TreeNode[] = [];
             const ctxValues: Record<string, unknown>[] = [];
-            const start = offset;
             for (let i = 0; i < count; i++) {
                 const childCtx: Record<string, unknown> = {};
                 const child = parseStruct(baseType, childCtx);
                 child.name = `${field.name}[${i}]`;
+                child.type = field.type;
                 children.push(child);
                 ctxValues.push(childCtx);
             }
             const size = offset - start;
-            ctx[field.name] = ctxValues.length === 1 ? ctxValues[0] : ctxValues;
+            ctx[field.name] = ctxValues;
             return { name: field.name, type: field.type, offset: start, size, children };
         }
 
