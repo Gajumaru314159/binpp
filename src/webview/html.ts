@@ -62,6 +62,9 @@ export function getHexViewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
         #hexContainer, #treeContainer {
             overflow: auto;
         }
+        #hexContainer {
+            display: flex;
+        }
         #treeContainer { display: none; }
         #divider {
             height: 4px;
