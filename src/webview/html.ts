@@ -17,12 +17,17 @@ export function getHexViewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
 <head>
     <meta name="color-scheme" content="light dark" />
     <style>
+        html, body {
+            height: 100%;
+        }
         body {
             font-family: monospace;
             display: flex;
             flex-direction: column;
             color: var(--vscode-editor-foreground);
             background-color: var(--vscode-editor-background);
+            margin: 0;
+            overflow: hidden;
         }
         .toolbar {
             margin-bottom: 10px;
@@ -61,6 +66,7 @@ export function getHexViewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
             flex-direction: column;
             flex: 1 1 auto;
             height: 100%;
+            overflow: hidden;
         }
         #hexContainer, #treeContainer {
             overflow: auto;
