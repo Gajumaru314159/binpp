@@ -15,6 +15,11 @@ const reloadButton = document.getElementById('reload') as HTMLButtonElement | nu
 const endianSelect = document.getElementById('endian') as HTMLSelectElement | null;
 
 const viewContainer = document.getElementById('viewContainer') as HTMLElement;
+const hexContainer = document.getElementById('hexContainer') as HTMLElement;
+const treeContainer = document.getElementById('treeContainer') as HTMLElement;
+const divider = document.getElementById('divider') as HTMLElement;
+
+let isDragging = false;
 
 let currentFocusIndex = -1;
 let currentBytesPerLine = parseInt(document.body.dataset.bytesPerLine || '16', 10);
@@ -51,10 +56,9 @@ function renderView(bytesPerLine: number, offset: number): string {
 function updateView(focusIndex = -1): void {
     currentBytesPerLine = parseInt(select.value, 10);
     currentOffset = parseInt(offsetInput.value, 10) || 0;
-    viewContainer.style.display = 'flex';
-    viewContainer.innerHTML = renderView(currentBytesPerLine, currentOffset);
+    hexContainer.innerHTML = renderView(currentBytesPerLine, currentOffset);
     if (focusIndex >= 0) {
-        const el = viewContainer.querySelector(`td.byte[data-index="${focusIndex}"]`);
+        const el = hexContainer.querySelector(`td.byte[data-index="${focusIndex}"]`);
         if (el instanceof HTMLElement) {
             el.focus();
         }
@@ -80,14 +84,40 @@ reloadButton?.addEventListener('click', () => {
     vscode.postMessage({ type: 'reload', littleEndian: little });
 });
 
+divider.addEventListener('mousedown', e => {
+    isDragging = true;
+    e.preventDefault();
+});
+
+window.addEventListener('mousemove', e => {
+    if (!isDragging) {
+        return;
+    }
+    const rect = viewContainer.getBoundingClientRect();
+    const offset = e.clientY - rect.top;
+    const percent = Math.min(Math.max(offset / rect.height, 0.1), 0.9);
+    hexContainer.style.height = `${percent * 100}%`;
+    treeContainer.style.height = `${(1 - percent) * 100}%`;
+});
+
+window.addEventListener('mouseup', () => {
+    isDragging = false;
+});
+
 window.addEventListener('message', event => {
     const msg = event.data;
     if (msg.type === 'treeData') {
         if (msg.html) {
-            viewContainer.style.display = 'block';
-            viewContainer.innerHTML = msg.html;
+            treeContainer.style.display = 'block';
+            divider.style.display = 'block';
+            hexContainer.style.height = '60%';
+            treeContainer.style.height = '40%';
+            treeContainer.innerHTML = msg.html;
         } else {
-            updateView();
+            treeContainer.style.display = 'none';
+            divider.style.display = 'none';
+            hexContainer.style.height = '100%';
+            updateView(currentFocusIndex);
         }
     } else if (msg.type === 'fileData') {
         const base64 = msg.base64Data as string;
@@ -97,7 +127,7 @@ window.addEventListener('message', event => {
     }
 });
 
-viewContainer.addEventListener('focusin', e => {
+hexContainer.addEventListener('focusin', e => {
     const target = e.target as HTMLElement;
     if (target && target.classList.contains('byte')) {
         currentFocusIndex = parseInt(target.getAttribute('data-index') || '0', 10);
@@ -105,7 +135,7 @@ viewContainer.addEventListener('focusin', e => {
     }
 });
 
-viewContainer.addEventListener('input', e => {
+hexContainer.addEventListener('input', e => {
     const target = e.target as HTMLElement;
     if (target && target.classList.contains('byte')) {
         const idx = parseInt(target.getAttribute('data-index') || '0', 10);

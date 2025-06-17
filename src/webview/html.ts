@@ -53,7 +53,22 @@ export function getHexViewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
         .hex td { letter-spacing: 0.1em; user-select: text; }
         .ascii td { padding-left: 10px; user-select: text; }
         .byte { outline: none; min-width: 20px; text-align: center; }
-        .view-container { display: flex; }
+        .view-container {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            height: 100%;
+        }
+        #hexContainer, #treeContainer {
+            overflow: auto;
+        }
+        #treeContainer { display: none; }
+        #divider {
+            height: 4px;
+            background: var(--vscode-editorGroup-border, gray);
+            cursor: row-resize;
+            display: none;
+        }
         .tree-table { border-collapse: collapse; width: 100%; }
         .tree-table td, .tree-table th { border: none; padding: 2px 4px; }
         .tree-table tbody tr:nth-child(odd) {
@@ -95,7 +110,11 @@ export function getHexViewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
     <input id="arrayLimit" type="number" value="${opts.initialArrayLimit}" style="width:80px;" />
     <button id="reload">Reload</button>
 </div>
-<div class="view-container" id="viewContainer"></div>
+<div class="view-container" id="viewContainer">
+    <div id="hexContainer"></div>
+    <div id="divider"></div>
+    <div id="treeContainer"></div>
+</div>
 <script src="${scriptUri}"></script>
 </body>
 </html>`;
