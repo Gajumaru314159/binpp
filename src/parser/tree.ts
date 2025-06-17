@@ -15,7 +15,7 @@ function treeRows(node: TreeNode, depth = 0): string {
             : '';
     const arrow = hasChildren ? `<span class="toggle" data-id="${id}">▾</span>` : '';
     const addr = `0x${node.offset.toString(16).padStart(8, '0')}`;
-    let html = `<tr data-id="${id}" data-depth="${depth}" data-hide-count="0"><td class="name" style="padding-left:${indent}px">${arrow}${node.name}</td>` +
+    let html = `<tr data-id="${id}" data-depth="${depth}" data-hide-count="0" data-offset="${node.offset}" data-size="${node.size}" data-type="${node.type}"><td class="name" style="padding-left:${indent}px">${arrow}${node.name}</td>` +
         `<td>${value}</td><td>${node.type}</td><td>${addr}</td></tr>`;
     if (node.children) {
         for (const c of node.children) {
