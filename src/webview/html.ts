@@ -53,6 +53,9 @@ export function getHexViewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
         .hex td { letter-spacing: 0.1em; user-select: text; }
         .ascii td { padding-left: 10px; user-select: text; }
         .byte { outline: none; min-width: 20px; text-align: center; }
+        .byte.highlight {
+            background-color: var(--vscode-editor-selectionBackground, rgba(100,100,255,0.4));
+        }
         .view-container {
             display: flex;
             flex-direction: column;

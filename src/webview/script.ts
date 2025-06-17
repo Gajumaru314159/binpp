@@ -20,6 +20,8 @@ const treeContainer = document.getElementById('treeContainer') as HTMLElement;
 const divider = document.getElementById('divider') as HTMLElement;
 
 let isDragging = false;
+let highlightStart = -1;
+let highlightEnd = -1;
 
 let currentFocusIndex = -1;
 let currentBytesPerLine = parseInt(document.body.dataset.bytesPerLine || '16', 10);
@@ -53,10 +55,50 @@ function renderView(bytesPerLine: number, offset: number): string {
            '<table class="ascii">' + ascii + '</table>';
 }
 
+function clearHighlight(): void {
+    if (highlightStart >= 0 && highlightEnd >= 0) {
+        for (let i = highlightStart; i < highlightEnd; i++) {
+            const el = hexContainer.querySelector(`td.byte[data-index="${i}"]`);
+            if (el) {
+                el.classList.remove('highlight');
+            }
+        }
+    }
+    highlightStart = highlightEnd = -1;
+}
+
+function highlightRange(start: number, size: number): void {
+    clearHighlight();
+    highlightStart = start;
+    highlightEnd = start + size;
+    for (let i = highlightStart; i < highlightEnd; i++) {
+        const el = hexContainer.querySelector(`td.byte[data-index="${i}"]`);
+        if (el) {
+            el.classList.add('highlight');
+        }
+    }
+    const first = hexContainer.querySelector(`td.byte[data-index="${start}"]`);
+    if (first instanceof HTMLElement) {
+        first.scrollIntoView({ block: 'nearest' });
+    }
+}
+
 function updateView(focusIndex = -1): void {
     currentBytesPerLine = parseInt(select.value, 10);
     currentOffset = parseInt(offsetInput.value, 10) || 0;
     hexContainer.innerHTML = renderView(currentBytesPerLine, currentOffset);
+    if (highlightStart >= 0 && highlightEnd > highlightStart) {
+        for (let i = highlightStart; i < highlightEnd; i++) {
+            const el = hexContainer.querySelector(`td.byte[data-index="${i}"]`);
+            if (el) {
+                el.classList.add('highlight');
+            }
+        }
+        const first = hexContainer.querySelector(`td.byte[data-index="${highlightStart}"]`);
+        if (first instanceof HTMLElement) {
+            first.scrollIntoView({ block: 'nearest' });
+        }
+    }
     if (focusIndex >= 0) {
         const el = hexContainer.querySelector(`td.byte[data-index="${focusIndex}"]`);
         if (el instanceof HTMLElement) {
@@ -108,12 +150,14 @@ window.addEventListener('message', event => {
     const msg = event.data;
     if (msg.type === 'treeData') {
         if (msg.html) {
+            clearHighlight();
             treeContainer.style.display = 'block';
             divider.style.display = 'block';
             hexContainer.style.height = '60%';
             treeContainer.style.height = '40%';
             treeContainer.innerHTML = msg.html;
         } else {
+            clearHighlight();
             treeContainer.style.display = 'none';
             divider.style.display = 'none';
             hexContainer.style.height = '100%';
@@ -123,7 +167,27 @@ window.addEventListener('message', event => {
         const base64 = msg.base64Data as string;
         document.body.dataset.base64 = base64;
         bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+        clearHighlight();
         updateView(currentFocusIndex);
+    }
+});
+
+treeContainer.addEventListener('click', e => {
+    let target = e.target as HTMLElement | null;
+    while (target && target.tagName !== 'TR') {
+        target = target.parentElement;
+    }
+    if (!target) {
+        return;
+    }
+    const type = target.dataset.type || '';
+    if (type === 'struct') {
+        return;
+    }
+    const start = parseInt(target.dataset.offset || '0', 10);
+    const size = parseInt(target.dataset.size || '0', 10);
+    if (size > 0) {
+        highlightRange(start, size);
     }
 });
 
